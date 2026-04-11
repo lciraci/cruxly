@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
+  const [email, setEmail] = useState('');
+  const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const router = useRouter();
 
   const handleSearch = (e: React.FormEvent) => {
@@ -14,12 +16,35 @@ export default function Home() {
     }
   };
 
+  const handleWaitlist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    setWaitlistStatus('loading');
+    try {
+      const response = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+
+      if (response.ok) {
+        setWaitlistStatus('success');
+        setEmail('');
+      } else {
+        setWaitlistStatus('error');
+      }
+    } catch {
+      setWaitlistStatus('error');
+    }
+  };
+
   const trendingTopics = [
-    'Artificial Intelligence regulation',
+    'Trump tariffs China',
+    'AI regulation technology',
     'Climate change policy',
-    'Economic outlook',
-    'Middle East tensions',
-    'Technology innovation',
+    'Ukraine war NATO',
+    'Global inflation economy',
   ];
 
   const handleTrendingClick = (topic: string) => {
@@ -124,11 +149,61 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Pro Waitlist */}
+        <div className="max-w-2xl mx-auto mt-24">
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-center text-white shadow-xl">
+            <h2 className="text-2xl font-bold mb-2">
+              Cruxly Pro is coming
+            </h2>
+            <p className="text-blue-100 mb-6">
+              Unlimited AI analyses, email alerts, PDF reports, and more.
+              Join the waitlist to get early access and 50% off.
+            </p>
+
+            {waitlistStatus === 'success' ? (
+              <div className="bg-white/20 rounded-lg p-4">
+                <p className="font-semibold">You're on the list!</p>
+                <p className="text-sm text-blue-100 mt-1">We'll email you when Pro launches.</p>
+              </div>
+            ) : (
+              <form onSubmit={handleWaitlist} className="flex gap-3 max-w-md mx-auto">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  required
+                  className="flex-1 px-4 py-3 rounded-lg bg-white/20 border border-white/30 text-white placeholder-blue-200 focus:outline-none focus:border-white transition-colors"
+                />
+                <button
+                  type="submit"
+                  disabled={waitlistStatus === 'loading'}
+                  className="px-6 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 disabled:opacity-50 transition-colors"
+                >
+                  {waitlistStatus === 'loading' ? '...' : 'Join'}
+                </button>
+              </form>
+            )}
+            {waitlistStatus === 'error' && (
+              <p className="text-red-200 mt-3 text-sm">Something went wrong. Try again.</p>
+            )}
+          </div>
+        </div>
+
         {/* Footer */}
-        <footer className="mt-24 text-center text-slate-500 dark:text-slate-400">
+        <footer className="mt-24 text-center text-slate-500 dark:text-slate-400 space-y-2">
           <p>
             Cruxly helps you see through media bias by comparing trusted sources across the political spectrum.
           </p>
+          <div className="flex justify-center gap-4 text-sm">
+            <a href="/privacy" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+              Privacy Policy
+            </a>
+            <span>|</span>
+            <a href="/about" className="hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+              About
+            </a>
+          </div>
         </footer>
       </div>
     </div>

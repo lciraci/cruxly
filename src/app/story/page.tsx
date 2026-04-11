@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { EnrichedArticle } from '@/types/news';
 import { StoryAnalysis } from '@/types/analysis';
+import AdBanner from '@/components/AdBanner';
 
 export default function StoryPage() {
   const searchParams = useSearchParams();
@@ -292,6 +293,9 @@ export default function StoryPage() {
               </div>
             ))}
           </div>
+
+          {/* Ad after sources list */}
+          <AdBanner slot="SOURCES_BOTTOM_AD" format="horizontal" />
         )}
 
         {activeTab === 'analysis' && analysis && (
@@ -305,6 +309,9 @@ export default function StoryPage() {
                 {analysis.summary}
               </p>
             </div>
+
+            {/* Ad after summary */}
+            <AdBanner slot="ANALYSIS_TOP_AD" format="horizontal" />
 
             {/* Consensus Facts */}
             <div className="bg-green-50 dark:bg-green-900/20 rounded-lg shadow-md p-6 border border-green-200 dark:border-green-800">

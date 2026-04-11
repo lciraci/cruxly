@@ -40,6 +40,9 @@ yarn-error.log*
 # claude code local settings
 .claude/
 
+# local data (waitlist emails, etc)
+/data/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
