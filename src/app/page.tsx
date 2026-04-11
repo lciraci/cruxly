@@ -34,7 +34,7 @@ export default function Home() {
       } else {
         setWaitlistStatus('error');
       }
-    } catch {
+    } catch (_err) {
       setWaitlistStatus('error');
     }
   };

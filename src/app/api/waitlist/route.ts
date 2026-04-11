@@ -14,7 +14,7 @@ async function ensureDataDir() {
   const dir = path.dirname(WAITLIST_FILE);
   try {
     await fs.access(dir);
-  } catch {
+  } catch (_err) {
     await fs.mkdir(dir, { recursive: true });
   }
 }
@@ -23,7 +23,7 @@ async function getWaitlist(): Promise<WaitlistEntry[]> {
   try {
     const data = await fs.readFile(WAITLIST_FILE, 'utf-8');
     return JSON.parse(data);
-  } catch {
+  } catch (_err) {
     return [];
   }
 }
@@ -81,7 +81,7 @@ export async function GET() {
       count: waitlist.length,
       entries: waitlist,
     });
-  } catch {
+  } catch (_err) {
     return NextResponse.json({ count: 0, entries: [] });
   }
 }

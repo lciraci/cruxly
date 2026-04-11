@@ -1,12 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { EnrichedArticle } from '@/types/news';
 import { StoryAnalysis } from '@/types/analysis';
 import AdBanner from '@/components/AdBanner';
 
 export default function StoryPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-slate-600 dark:text-slate-300">Loading...</p>
+        </div>
+      </div>
+    }>
+      <StoryContent />
+    </Suspense>
+  );
+}
+
+function StoryContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get('q');
