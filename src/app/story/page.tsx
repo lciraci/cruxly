@@ -16,6 +16,11 @@ export default function StoryPage() {
   const [analysis, setAnalysis] = useState<StoryAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'sources' | 'analysis'>('sources');
+  const [diversity, setDiversity] = useState<{
+    uniqueSources: number;
+    sourceNames: string[];
+    biasDistribution: Record<string, number>;
+  } | null>(null);
 
   useEffect(() => {
     if (!query) {
@@ -32,7 +37,7 @@ export default function StoryPage() {
       setError(null);
 
       const response = await fetch(
-        `/api/news/search?q=${encodeURIComponent(query!)}&pageSize=10`
+        `/api/news/search?q=${encodeURIComponent(query!)}&pageSize=12`
       );
 
       if (!response.ok) {
@@ -42,6 +47,7 @@ export default function StoryPage() {
 
       const data = await response.json();
       setArticles(data.articles);
+      if (data.diversity) setDiversity(data.diversity);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
     } finally {
@@ -172,8 +178,44 @@ export default function StoryPage() {
             {query}
           </h1>
           <p className="text-slate-600 dark:text-slate-400">
-            Comparing coverage across multiple sources
+            Comparing coverage across {diversity?.uniqueSources || '...'} sources
           </p>
+
+          {/* Bias Distribution Bar */}
+          {diversity && (
+            <div className="mt-4 bg-white dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+              <div className="flex items-center gap-2 mb-2 text-sm text-slate-600 dark:text-slate-400">
+                <span className="font-medium">Political Spectrum Coverage:</span>
+              </div>
+              <div className="flex gap-1 h-3 rounded-full overflow-hidden">
+                {diversity.biasDistribution['left'] && (
+                  <div className="bg-blue-600" style={{ flex: diversity.biasDistribution['left'] }} title={`Left: ${diversity.biasDistribution['left']}`} />
+                )}
+                {diversity.biasDistribution['center-left'] && (
+                  <div className="bg-blue-300" style={{ flex: diversity.biasDistribution['center-left'] }} title={`Center-Left: ${diversity.biasDistribution['center-left']}`} />
+                )}
+                {diversity.biasDistribution['center'] && (
+                  <div className="bg-gray-400" style={{ flex: diversity.biasDistribution['center'] }} title={`Center: ${diversity.biasDistribution['center']}`} />
+                )}
+                {diversity.biasDistribution['center-right'] && (
+                  <div className="bg-red-300" style={{ flex: diversity.biasDistribution['center-right'] }} title={`Center-Right: ${diversity.biasDistribution['center-right']}`} />
+                )}
+                {diversity.biasDistribution['right'] && (
+                  <div className="bg-red-600" style={{ flex: diversity.biasDistribution['right'] }} title={`Right: ${diversity.biasDistribution['right']}`} />
+                )}
+              </div>
+              <div className="flex justify-between mt-2 text-xs text-slate-500 dark:text-slate-400">
+                <div className="flex gap-3">
+                  {Object.entries(diversity.biasDistribution).map(([bias, count]) => (
+                    <span key={bias} className="flex items-center gap-1">
+                      <span className={`w-2 h-2 rounded-full ${getBiasColor(bias)}`}></span>
+                      {getBiasLabel(bias)}: {count}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Tabs */}

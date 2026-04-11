@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
       bias: article.sourceBias || 'unknown',
       title: article.title,
       description: article.description,
-      content: article.content?.substring(0, 1000), // Limit content length
+      content: article.content?.substring(0, 2000), // RSS gives full text, use more for better analysis
       url: article.url,
     }));
 
