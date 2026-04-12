@@ -263,54 +263,56 @@ function StoryContent() {
 
         {/* Content */}
         {activeTab === 'sources' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {articles.map((article, idx) => (
-              <div
-                key={idx}
-                className="bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-xl transition-shadow border border-slate-200 dark:border-slate-700 overflow-hidden"
-              >
-                {article.urlToImage && (
-                  <img
-                    src={article.urlToImage}
-                    alt={article.title}
-                    className="w-full h-48 object-cover"
-                  />
-                )}
-                <div className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      {article.source.name}
-                    </span>
-                    <span className={`px-2 py-1 rounded text-xs text-white ${getBiasColor(article.sourceBias)}`}>
-                      {getBiasLabel(article.sourceBias)}
-                    </span>
-                    {article.sourceTrustScore && (
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        Trust: {article.sourceTrustScore}/100
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {articles.map((article, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-xl transition-shadow border border-slate-200 dark:border-slate-700 overflow-hidden"
+                >
+                  {article.urlToImage && (
+                    <img
+                      src={article.urlToImage}
+                      alt={article.title}
+                      className="w-full h-48 object-cover"
+                    />
+                  )}
+                  <div className="p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        {article.source.name}
                       </span>
-                    )}
+                      <span className={`px-2 py-1 rounded text-xs text-white ${getBiasColor(article.sourceBias)}`}>
+                        {getBiasLabel(article.sourceBias)}
+                      </span>
+                      {article.sourceTrustScore && (
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          Trust: {article.sourceTrustScore}/100
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2 line-clamp-3">
+                      {article.title}
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-3">
+                      {article.description}
+                    </p>
+                    <a
+                      href={article.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium"
+                    >
+                      Read full article →
+                    </a>
                   </div>
-                  <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2 line-clamp-3">
-                    {article.title}
-                  </h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-3">
-                    {article.description}
-                  </p>
-                  <a
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium"
-                  >
-                    Read full article →
-                  </a>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
 
-          {/* Ad after sources list */}
-          <AdBanner slot="SOURCES_BOTTOM_AD" format="horizontal" />
+            {/* Ad after sources list */}
+            <AdBanner slot="SOURCES_BOTTOM_AD" format="horizontal" />
+          </>
         )}
 
         {activeTab === 'analysis' && analysis && (
