@@ -40,11 +40,92 @@ export default function Home() {
   };
 
   const trendingTopics = [
-    { topic: 'Trump tariffs China', description: 'Trade war escalation and economic impact' },
-    { topic: 'AI regulation technology', description: 'Global AI policy and safety frameworks' },
-    { topic: 'Climate change policy', description: 'Environmental legislation and agreements' },
-    { topic: 'Ukraine war NATO', description: 'Conflict developments and alliance dynamics' },
-    { topic: 'Global inflation economy', description: 'Cost of living and monetary policy' },
+    {
+      topic: 'Trump tariffs China',
+      description: 'Trade war escalation and economic impact across global markets',
+      category: 'Economy',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      ),
+      color: {
+        border: 'border-l-amber-500',
+        bg: 'bg-amber-50 dark:bg-amber-950/20',
+        icon: 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400',
+        tag: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300',
+        hover: 'hover:border-l-amber-400',
+      },
+      featured: true,
+    },
+    {
+      topic: 'AI regulation technology',
+      description: 'Global AI policy and safety frameworks',
+      category: 'Technology',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      ),
+      color: {
+        border: 'border-l-violet-500',
+        bg: 'bg-violet-50 dark:bg-violet-950/20',
+        icon: 'bg-violet-100 dark:bg-violet-900/40 text-violet-600 dark:text-violet-400',
+        tag: 'bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300',
+        hover: 'hover:border-l-violet-400',
+      },
+    },
+    {
+      topic: 'Climate change policy',
+      description: 'Environmental legislation and agreements',
+      category: 'Environment',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      color: {
+        border: 'border-l-emerald-500',
+        bg: 'bg-emerald-50 dark:bg-emerald-950/20',
+        icon: 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400',
+        tag: 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300',
+        hover: 'hover:border-l-emerald-400',
+      },
+    },
+    {
+      topic: 'Ukraine war NATO',
+      description: 'Conflict developments and alliance dynamics',
+      category: 'Geopolitics',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      ),
+      color: {
+        border: 'border-l-rose-500',
+        bg: 'bg-rose-50 dark:bg-rose-950/20',
+        icon: 'bg-rose-100 dark:bg-rose-900/40 text-rose-600 dark:text-rose-400',
+        tag: 'bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300',
+        hover: 'hover:border-l-rose-400',
+      },
+    },
+    {
+      topic: 'Global inflation economy',
+      description: 'Cost of living and monetary policy',
+      category: 'Finance',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      color: {
+        border: 'border-l-indigo-500',
+        bg: 'bg-indigo-50 dark:bg-indigo-950/20',
+        icon: 'bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400',
+        tag: 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300',
+        hover: 'hover:border-l-indigo-400',
+      },
+    },
   ];
 
   const handleTrendingClick = (topic: string) => {
@@ -99,22 +180,71 @@ export default function Home() {
 
         {/* Trending Topics */}
         <div className="max-w-4xl mx-auto">
-          <h2 className="text-xl sm:text-2xl font-semibold mb-4 sm:mb-6 text-slate-800 dark:text-slate-200 px-1">
-            Trending Topics
-          </h2>
+          <div className="flex items-center gap-2 mb-4 sm:mb-6 px-1">
+            <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c0-2 .5-5 2.986-7C14 5 16.09 5.777 17.656 7.343A7.975 7.975 0 0120 13a7.975 7.975 0 01-2.343 5.657z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.879 16.121A3 3 0 1012.015 11L11 14H9c0 .768.293 1.536.879 2.121z" />
+            </svg>
+            <h2 className="text-xl sm:text-2xl font-semibold text-slate-800 dark:text-slate-200">
+              Trending Now
+            </h2>
+          </div>
+
+          {/* Featured topic — first card larger */}
+          {trendingTopics.filter(t => t.featured).map(({ topic, description, category, icon, color }) => (
+            <button
+              key={topic}
+              onClick={() => handleTrendingClick(topic)}
+              className={`w-full mb-4 p-5 sm:p-7 rounded-xl shadow-md hover:shadow-xl transition-all hover:-translate-y-0.5 border-l-4 ${color.border} ${color.hover} ${color.bg} border border-slate-200/60 dark:border-slate-700/60 text-left group`}
+            >
+              <div className="flex items-start gap-4">
+                <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-xl ${color.icon} flex items-center justify-center shrink-0`}>
+                  {icon}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${color.tag}`}>
+                      {category}
+                    </span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-slate-800 dark:text-slate-100 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                    {topic}
+                  </h3>
+                  <p className="text-sm sm:text-base text-slate-500 dark:text-slate-400 mt-1">
+                    {description}
+                  </p>
+                </div>
+                <svg className="w-5 h-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors shrink-0 mt-1 hidden sm:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            </button>
+          ))}
+
+          {/* Rest of topics in grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {trendingTopics.map(({ topic, description }) => (
+            {trendingTopics.filter(t => !t.featured).map(({ topic, description, category, icon, color }) => (
               <button
                 key={topic}
                 onClick={() => handleTrendingClick(topic)}
-                className="p-4 sm:p-6 bg-white dark:bg-slate-800 rounded-lg shadow-md hover:shadow-xl transition-all hover:-translate-y-0.5 border border-slate-200 dark:border-slate-700 text-left group"
+                className={`p-4 sm:p-5 rounded-xl shadow-md hover:shadow-xl transition-all hover:-translate-y-0.5 border-l-4 ${color.border} ${color.hover} ${color.bg} border border-slate-200/60 dark:border-slate-700/60 text-left group`}
               >
-                <h3 className="text-base sm:text-lg font-medium text-slate-800 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                  {topic}
-                </h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1.5">
-                  {description}
-                </p>
+                <div className="flex items-start gap-3">
+                  <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-lg ${color.icon} flex items-center justify-center shrink-0`}>
+                    {icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${color.tag}`}>
+                      {category}
+                    </span>
+                    <h3 className="text-base sm:text-lg font-medium text-slate-800 dark:text-slate-100 mt-1.5 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                      {topic}
+                    </h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                      {description}
+                    </p>
+                  </div>
+                </div>
               </button>
             ))}
           </div>
