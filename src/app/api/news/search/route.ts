@@ -10,19 +10,77 @@ const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const NEWS_API_BASE_URL = 'https://newsapi.org/v2';
 const rssParser = new RSSParser();
 
-// ---------------------------------------------------------------------------
-// Relevance scoring — filters out articles that don't match the query
-// ---------------------------------------------------------------------------
-function relevanceScore(article: { title: string; description?: string | null; content?: string | null }, query: string): number {
-  const queryTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
-  const text = `${article.title} ${article.description || ''} ${article.content || ''}`.toLowerCase();
+// Common stop words to ignore in relevance scoring
+const STOP_WORDS = new Set([
+  'the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'had',
+  'her', 'was', 'one', 'our', 'out', 'has', 'have', 'been', 'were', 'they',
+  'this', 'that', 'with', 'from', 'will', 'what', 'when', 'make', 'like',
+  'just', 'over', 'such', 'take', 'than', 'them', 'very', 'some', 'into',
+  'could', 'after', 'about', 'would', 'there', 'their', 'which', 'being',
+]);
 
-  let matched = 0;
+// ---------------------------------------------------------------------------
+// Relevance scoring — strict filtering to avoid junk results
+// ---------------------------------------------------------------------------
+function relevanceScore(
+  article: { title: string; description?: string | null; content?: string | null },
+  query: string
+): number {
+  const queryTerms = query
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(t => t.length > 2 && !STOP_WORDS.has(t));
+
+  if (queryTerms.length === 0) return 0;
+
+  const title = (article.title || '').toLowerCase();
+  const fullText = `${title} ${article.description || ''} ${article.content || ''}`.toLowerCase();
+
+  // Count matches in full text
+  let textMatches = 0;
   for (const term of queryTerms) {
-    if (text.includes(term)) matched++;
+    if (fullText.includes(term)) textMatches++;
   }
 
-  return queryTerms.length > 0 ? matched / queryTerms.length : 0;
+  // Count matches in title specifically
+  let titleMatches = 0;
+  for (const term of queryTerms) {
+    if (title.includes(term)) titleMatches++;
+  }
+
+  // Base score: % of query terms found in full text
+  let score = textMatches / queryTerms.length;
+
+  // BOOST: +0.3 if ALL query terms appear in the title (very relevant)
+  if (titleMatches === queryTerms.length) {
+    score += 0.3;
+  }
+  // BOOST: +0.15 if at least half the query terms appear in the title
+  else if (titleMatches >= queryTerms.length / 2) {
+    score += 0.15;
+  }
+
+  // PENALTY: -0.3 if NONE of the query terms appear in the title
+  if (titleMatches === 0) {
+    score -= 0.3;
+  }
+
+  return Math.max(0, Math.min(1.3, score));
+}
+
+// ---------------------------------------------------------------------------
+// Recency boost — fresher articles score higher
+// ---------------------------------------------------------------------------
+function recencyBoost(publishedAt: string): number {
+  const now = Date.now();
+  const published = new Date(publishedAt).getTime();
+  const hoursAgo = (now - published) / (1000 * 60 * 60);
+
+  if (hoursAgo < 6) return 0.2;     // Last 6 hours: big boost
+  if (hoursAgo < 24) return 0.15;   // Last 24 hours
+  if (hoursAgo < 48) return 0.1;    // Last 2 days
+  if (hoursAgo < 72) return 0.05;   // Last 3 days
+  return 0;                          // Older: no boost
 }
 
 // ---------------------------------------------------------------------------
@@ -30,6 +88,7 @@ function relevanceScore(article: { title: string; description?: string | null; c
 // ---------------------------------------------------------------------------
 async function fetchRSSArticles(query: string): Promise<EnrichedArticle[]> {
   const allArticles: EnrichedArticle[] = [];
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
   // Fetch all RSS feeds in parallel with a timeout
   const feedPromises = RSS_FEEDS.map(async (feedConfig) => {
@@ -43,23 +102,29 @@ async function fetchRSSArticles(query: string): Promise<EnrichedArticle[]> {
       const source = getSourceById(feedConfig.sourceId);
       if (!source || !feed.items) return [];
 
-      // Convert RSS items to our article format
-      return feed.items.slice(0, 15).map((item): EnrichedArticle => ({
-        source: { id: source.newsApiId || source.id, name: source.name },
-        author: item.creator || item['dc:creator'] || null,
-        title: item.title || '',
-        description: item.contentSnippet || item.content?.substring(0, 300) || null,
-        url: item.link || '',
-        urlToImage: item.enclosure?.url || null,
-        publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
-        content: item.content || item['content:encoded'] || null,
-        sourceBias: source.bias,
-        sourceTrustScore: source.trustScore,
-        sourceRegion: source.region,
-      }));
-    } catch (err) {
+      // Convert RSS items, filter out articles older than 7 days
+      return feed.items
+        .slice(0, 15)
+        .map((item): EnrichedArticle => ({
+          source: { id: source.newsApiId || source.id, name: source.name },
+          author: item.creator || item['dc:creator'] || null,
+          title: item.title || '',
+          description: item.contentSnippet || item.content?.substring(0, 300) || null,
+          url: item.link || '',
+          urlToImage: item.enclosure?.url || null,
+          publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
+          content: item.content || item['content:encoded'] || null,
+          sourceBias: source.bias,
+          sourceTrustScore: source.trustScore,
+          sourceRegion: source.region,
+        }))
+        .filter(article => {
+          // Filter out articles older than 7 days
+          const pubDate = new Date(article.publishedAt).getTime();
+          return !isNaN(pubDate) && pubDate > sevenDaysAgo;
+        });
+    } catch (_err) {
       // RSS feed failed — that's fine, we have other sources
-      console.warn(`RSS feed failed for ${feedConfig.sourceId}:`, err instanceof Error ? err.message : 'unknown');
       return [];
     }
   });
@@ -75,9 +140,13 @@ async function fetchRSSArticles(query: string): Promise<EnrichedArticle[]> {
 }
 
 // ---------------------------------------------------------------------------
-// NewsAPI Fetching — fallback, 100 req/day free
+// NewsAPI Fetching — PRIMARY for keyword search, 100 req/day free
 // ---------------------------------------------------------------------------
-async function fetchNewsAPIArticles(query: string, language: string): Promise<EnrichedArticle[]> {
+async function fetchNewsAPIArticles(
+  query: string,
+  language: string,
+  location?: string
+): Promise<EnrichedArticle[]> {
   if (!NEWS_API_KEY) return [];
 
   try {
@@ -86,15 +155,25 @@ async function fetchNewsAPIArticles(query: string, language: string): Promise<En
       .map(s => s.newsApiId)
       .filter(Boolean);
 
+    // Search last 7 days
+    const fromDate = new Date();
+    fromDate.setDate(fromDate.getDate() - 7);
+
+    // Add location context to query if provided
+    const searchQuery = location
+      ? `${query} ${location}`
+      : query;
+
     const response = await axios.get<NewsAPIResponse>(
       `${NEWS_API_BASE_URL}/everything`,
       {
         params: {
-          q: query,
+          q: searchQuery,
           sources: availableSources.join(','),
           language,
-          pageSize: 20,
+          pageSize: 30, // Fetch more to have better selection
           sortBy: 'publishedAt',
+          from: fromDate.toISOString().split('T')[0],
           apiKey: NEWS_API_KEY,
         },
         timeout: 10000,
@@ -114,8 +193,7 @@ async function fetchNewsAPIArticles(query: string, language: string): Promise<En
         sourceRegion: sourceData?.region,
       };
     });
-  } catch (err) {
-    console.warn('NewsAPI failed:', err instanceof Error ? err.message : 'unknown');
+  } catch (_err) {
     return [];
   }
 }
@@ -124,28 +202,38 @@ async function fetchNewsAPIArticles(query: string, language: string): Promise<En
 // DIVERSITY ENGINE — the core of Cruxly's value
 //
 // Rules:
-//  1. Maximum 2 articles per source (no Fox News flood)
-//  2. Minimum 3 different bias categories in final results
-//  3. Prioritize: relevance → bias diversity → trust score
-//  4. At least 1 article from left, center, and right
+//  1. Minimum relevance threshold: 50% (strict)
+//  2. Maximum 2 articles per source (no Fox News flood)
+//  3. Minimum 3 different bias categories in final results
+//  4. Prioritize: relevance + recency → bias diversity → trust score
 // ---------------------------------------------------------------------------
-function enforceDiversity(articles: EnrichedArticle[], query: string, limit: number): EnrichedArticle[] {
-  // Step 1: Score relevance and filter out junk (< 30% match)
+function enforceDiversity(
+  articles: EnrichedArticle[],
+  query: string,
+  limit: number
+): { articles: EnrichedArticle[]; lowCoverage: boolean } {
+  // Step 1: Score relevance + recency, filter out junk (< 50% match)
   const scored = articles
-    .map(a => ({ article: a, score: relevanceScore(a, query) }))
-    .filter(a => a.score >= 0.3)
+    .map(a => ({
+      article: a,
+      score: relevanceScore(a, query) + recencyBoost(a.publishedAt),
+    }))
+    .filter(a => a.score >= 0.5) // Strict: must match at least 50%
     .sort((a, b) => b.score - a.score);
 
-  // Step 2: Deduplicate by title similarity (avoid same story from same source)
+  const lowCoverage = scored.length < 6;
+
+  // Step 2: Deduplicate by title similarity
   const seen = new Set<string>();
   const deduped = scored.filter(({ article }) => {
-    const key = `${article.source.name}::${article.title.substring(0, 50).toLowerCase()}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
+    // Normalize title for comparison
+    const titleNorm = article.title.substring(0, 60).toLowerCase().replace(/[^a-z0-9]/g, '');
+    if (seen.has(titleNorm)) return false;
+    seen.add(titleNorm);
     return true;
   });
 
-  // Step 3: Build diverse set — pick best article per source, max 2 per source
+  // Step 3: Build diverse set — max 2 per source
   const bySource = new Map<string, typeof deduped>();
   for (const item of deduped) {
     const sourceName = item.article.source.name;
@@ -153,19 +241,18 @@ function enforceDiversity(articles: EnrichedArticle[], query: string, limit: num
     bySource.get(sourceName)!.push(item);
   }
 
-  // Step 4: Round-robin by bias category to ensure balance
+  // Step 4: Group by bias, sort by trust then relevance
   const biasOrder: BiasLeaning[] = ['center', 'center-left', 'center-right', 'left', 'right'];
   const byBias = new Map<BiasLeaning, typeof deduped>();
 
   for (const [, sourceArticles] of bySource) {
-    for (const item of sourceArticles.slice(0, 2)) { // max 2 per source
+    for (const item of sourceArticles.slice(0, 2)) {
       const bias = item.article.sourceBias || 'center';
       if (!byBias.has(bias as BiasLeaning)) byBias.set(bias as BiasLeaning, []);
       byBias.get(bias as BiasLeaning)!.push(item);
     }
   }
 
-  // Sort within each bias group by trust score, then relevance
   for (const [, items] of byBias) {
     items.sort((a, b) => {
       const trustDiff = (b.article.sourceTrustScore || 0) - (a.article.sourceTrustScore || 0);
@@ -194,7 +281,7 @@ function enforceDiversity(articles: EnrichedArticle[], query: string, limit: num
     }
   }
 
-  return result;
+  return { articles: result, lowCoverage };
 }
 
 // ---------------------------------------------------------------------------
@@ -206,6 +293,7 @@ export async function GET(request: NextRequest) {
     const query = searchParams.get('q');
     const language = searchParams.get('language') || 'en';
     const pageSize = parseInt(searchParams.get('pageSize') || '12');
+    const location = searchParams.get('location') || undefined;
 
     if (!query) {
       return NextResponse.json(
@@ -214,17 +302,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Fetch from both sources in parallel
+    // Fetch from BOTH sources in parallel
+    // NewsAPI is PRIMARY (keyword search), RSS is SUPPLEMENTARY (topic feeds)
     const [rssArticles, newsApiArticles] = await Promise.all([
       fetchRSSArticles(query),
-      fetchNewsAPIArticles(query, language),
+      fetchNewsAPIArticles(query, language, location),
     ]);
 
-    // Merge all articles
-    const allArticles = [...rssArticles, ...newsApiArticles];
+    // Merge: NewsAPI first (better keyword matching), then RSS
+    const allArticles = [...newsApiArticles, ...rssArticles];
 
     // Apply diversity engine
-    const diverseArticles = enforceDiversity(allArticles, query, pageSize);
+    const { articles: diverseArticles, lowCoverage } = enforceDiversity(allArticles, query, pageSize);
 
     // Stats for the response
     const biasDistribution: Record<string, number> = {};
@@ -248,9 +337,13 @@ export async function GET(request: NextRequest) {
         rssArticlesFound: rssArticles.length,
         newsApiArticlesFound: newsApiArticles.length,
       },
+      ...(lowCoverage && {
+        notice: 'Limited coverage found for this topic. Try broader search terms.',
+      }),
       metadata: {
         sourcesQueried: RSS_FEEDS.length + NEWS_SOURCES.filter(s => s.newsApiId).length,
         timestamp: new Date().toISOString(),
+        location: location || null,
       },
     });
 

@@ -7,6 +7,24 @@ import { StoryAnalysis } from '@/types/analysis';
 import AdBanner from '@/components/AdBanner';
 import { SkeletonGrid, SkeletonBiasBar } from '@/components/SkeletonCard';
 
+// Relative time helper
+function timeAgo(dateString: string): string {
+  const now = Date.now();
+  const date = new Date(dateString).getTime();
+  if (isNaN(date)) return '';
+
+  const seconds = Math.floor((now - date) / 1000);
+  if (seconds < 60) return 'just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days}d ago`;
+  return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 export default function StoryPage() {
   return (
     <Suspense fallback={<StoryLoading />}>
@@ -42,6 +60,7 @@ function StoryContent() {
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<'search' | 'analysis'>('search');
   const [activeTab, setActiveTab] = useState<'sources' | 'analysis'>('sources');
+  const [notice, setNotice] = useState<string | null>(null);
   const [diversity, setDiversity] = useState<{
     uniqueSources: number;
     sourceNames: string[];
@@ -61,9 +80,19 @@ function StoryContent() {
     try {
       setLoading(true);
       setError(null);
+      setNotice(null);
 
-      const response = await fetch(
-        `/api/news/search?q=${encodeURIComponent(query!)}&pageSize=12`
+      // Get location from localStorage
+      const savedLocation = typeof window !== 'undefined'
+        ? localStorage.getItem('cruxly-location') || ''
+        : '';
+
+      let url = `/api/news/search?q=${encodeURIComponent(query!)}&pageSize=12`;
+      if (savedLocation) {
+        url += `&location=${encodeURIComponent(savedLocation)}`;
+      }
+
+      const response = await fetch(url
       );
 
       if (!response.ok) {
@@ -74,6 +103,7 @@ function StoryContent() {
       const data = await response.json();
       setArticles(data.articles);
       if (data.diversity) setDiversity(data.diversity);
+      if (data.notice) setNotice(data.notice);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       setErrorType('search');
@@ -293,6 +323,16 @@ function StoryContent() {
           </div>
         )}
 
+        {/* Low coverage notice */}
+        {notice && (
+          <div className="mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-3 flex items-center gap-2">
+            <svg className="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="text-sm text-amber-700 dark:text-amber-300">{notice}</p>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="mb-6 border-b border-slate-200 dark:border-slate-700">
           <div className="flex gap-1 sm:gap-4 -mb-px">
@@ -348,6 +388,11 @@ function StoryContent() {
                       {article.sourceTrustScore && (
                         <span className="text-xs text-slate-500 dark:text-slate-400">
                           Trust: {article.sourceTrustScore}
+                        </span>
+                      )}
+                      {article.publishedAt && (
+                        <span className="text-xs text-slate-400 dark:text-slate-500 ml-auto">
+                          {timeAgo(article.publishedAt)}
                         </span>
                       )}
                     </div>

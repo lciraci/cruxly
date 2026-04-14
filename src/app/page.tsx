@@ -1,13 +1,27 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [email, setEmail] = useState('');
+  const [location, setLocation] = useState('');
+  const [locationEditing, setLocationEditing] = useState(false);
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const router = useRouter();
+
+  // Load saved location from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('cruxly-location');
+    if (saved) setLocation(saved);
+  }, []);
+
+  const saveLocation = (value: string) => {
+    setLocation(value);
+    localStorage.setItem('cruxly-location', value);
+    setLocationEditing(false);
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,6 +190,61 @@ export default function Home() {
               Search
             </button>
           </form>
+
+          {/* Location selector */}
+          <div className="flex items-center justify-center mt-3 gap-2">
+            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {locationEditing ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const input = (e.target as HTMLFormElement).elements.namedItem('loc') as HTMLInputElement;
+                  saveLocation(input.value.trim());
+                }}
+                className="flex items-center gap-2"
+              >
+                <input
+                  name="loc"
+                  type="text"
+                  defaultValue={location}
+                  placeholder="City, State (e.g. Charlotte, NC)"
+                  autoFocus
+                  className="px-3 py-1 text-sm rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 focus:outline-none focus:border-blue-500 w-56"
+                />
+                <button type="submit" className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                  Save
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocationEditing(false)}
+                  className="text-xs text-slate-400 hover:underline"
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <button
+                onClick={() => setLocationEditing(true)}
+                className="text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+              >
+                {location ? location : 'Set your location for local news'}
+              </button>
+            )}
+            {location && !locationEditing && (
+              <button
+                onClick={() => { saveLocation(''); }}
+                className="text-xs text-slate-400 hover:text-red-500 transition-colors"
+                title="Clear location"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Trending Topics */}
