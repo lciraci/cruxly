@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { EnrichedArticle } from '@/types/news';
-import { StoryAnalysis } from '@/types/analysis';
+import { StoryAnalysis, NarrativeDrift } from '@/types/analysis';
 import AdBanner from '@/components/AdBanner';
 import { SkeletonGrid, SkeletonBiasBar } from '@/components/SkeletonCard';
 
@@ -33,6 +33,163 @@ export default function StoryPage() {
   );
 }
 
+// ─── Story DNA Component ──────────────────────────────────────────────────────
+
+function DriftBadge({ score }: { score: number }) {
+  const color =
+    score >= 50 ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 border-red-200 dark:border-red-800' :
+    score >= 20 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800' :
+                  'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 border-green-200 dark:border-green-800';
+  const label = score >= 50 ? 'High drift' : score >= 20 ? 'Moderate drift' : 'Stable story';
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full border font-semibold text-sm ${color}`}>
+      <span className="text-lg font-bold">{score}</span>
+      <span className="font-normal">{label}</span>
+    </span>
+  );
+}
+
+function ClaimList({ claims, color }: { claims: string[]; color: 'green' | 'red' | 'yellow' | 'blue' }) {
+  if (claims.length === 0) return <p className="text-sm text-slate-400 italic">None</p>;
+  const styles = {
+    green: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-800 dark:text-green-200',
+    red:   'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-800 dark:text-red-200',
+    yellow:'bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-200',
+    blue:  'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200',
+  };
+  return (
+    <ul className="space-y-2">
+      {claims.map((c, i) => (
+        <li key={i} className={`text-sm px-3 py-2 rounded-lg border ${styles[color]}`}>{c}</li>
+      ))}
+    </ul>
+  );
+}
+
+function StoryDNA({ drift, topic, snapshotCount }: { drift: NarrativeDrift; topic: string; snapshotCount: number }) {
+  const firstDate = new Date(drift.firstSeen).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  const prevDate  = new Date(drift.previousTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const prevTime  = new Date(drift.previousTimestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+  const totalChanges =
+    drift.gainedConsensus.length + drift.lostConsensus.length +
+    drift.newDisputed.length + drift.resolvedDisputed.length;
+
+  return (
+    <div className="space-y-6">
+      {/* Header card */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 sm:p-6 shadow-md">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 mb-1">
+              <svg className="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              Story DNA
+            </h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm">
+              Tracking <span className="font-medium text-slate-700 dark:text-slate-200">&ldquo;{topic}&rdquo;</span> since {firstDate}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <DriftBadge score={drift.driftScore} />
+            <div className="text-center">
+              <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{snapshotCount}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">analyses</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-slate-800 dark:text-slate-100">{drift.daysSinceFirst}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">{drift.daysSinceFirst === 1 ? 'day' : 'days'} tracked</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Timeline bar */}
+        <div className="mt-5 flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+          <span className="shrink-0">First seen {firstDate}</span>
+          <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
+            <div className={`h-full rounded-full ${
+              drift.driftScore >= 50 ? 'bg-red-400' : drift.driftScore >= 20 ? 'bg-yellow-400' : 'bg-emerald-400'
+            }`} style={{ width: `${Math.max(8, drift.driftScore)}%` }} />
+          </div>
+          <span className="shrink-0">Now</span>
+        </div>
+        {totalChanges === 0 && (
+          <p className="mt-4 text-sm text-slate-500 dark:text-slate-400 italic">
+            No significant narrative changes detected since the previous analysis ({prevDate} {prevTime}).
+          </p>
+        )}
+      </div>
+
+      {/* What changed */}
+      {totalChanges > 0 && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Gained consensus */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-1.5 text-sm">
+              <span className="text-green-500">+</span> New consensus facts
+              <span className="ml-auto text-xs font-normal text-slate-400">{drift.gainedConsensus.length}</span>
+            </h3>
+            <ClaimList claims={drift.gainedConsensus} color="green" />
+          </div>
+
+          {/* Lost consensus */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-1.5 text-sm">
+              <span className="text-red-500">−</span> Dropped from consensus
+              <span className="ml-auto text-xs font-normal text-slate-400">{drift.lostConsensus.length}</span>
+            </h3>
+            <ClaimList claims={drift.lostConsensus} color="red" />
+          </div>
+
+          {/* New disputed */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-1.5 text-sm">
+              <span className="text-yellow-500">!</span> Newly disputed
+              <span className="ml-auto text-xs font-normal text-slate-400">{drift.newDisputed.length}</span>
+            </h3>
+            <ClaimList claims={drift.newDisputed} color="yellow" />
+          </div>
+
+          {/* Resolved disputes */}
+          <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+            <h3 className="font-semibold text-slate-800 dark:text-slate-100 mb-3 flex items-center gap-1.5 text-sm">
+              <span className="text-blue-500">✓</span> Disputes resolved
+              <span className="ml-auto text-xs font-normal text-slate-400">{drift.resolvedDisputed.length}</span>
+            </h3>
+            <ClaimList claims={drift.resolvedDisputed} color="blue" />
+          </div>
+        </div>
+      )}
+
+      {/* Summary comparison */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 shadow-md">
+        <h3 className="font-bold text-slate-800 dark:text-slate-100 mb-4 text-base">
+          Narrative comparison
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <div className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2">
+              First analysis · {firstDate}
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-700/50 rounded-lg p-3">
+              {drift.firstSummary}
+            </p>
+          </div>
+          <div>
+            <div className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-2">
+              Latest analysis · now
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-3 border border-emerald-100 dark:border-emerald-900">
+              {drift.previousSummary}
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function StoryLoading() {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -59,7 +216,7 @@ function StoryContent() {
   const [analysis, setAnalysis] = useState<StoryAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<'search' | 'analysis'>('search');
-  const [activeTab, setActiveTab] = useState<'sources' | 'analysis'>('sources');
+  const [activeTab, setActiveTab] = useState<'sources' | 'analysis' | 'dna'>('sources');
   const [notice, setNotice] = useState<string | null>(null);
   const [diversity, setDiversity] = useState<{
     uniqueSources: number;
@@ -135,7 +292,7 @@ function StoryContent() {
 
       const data = await response.json();
       setAnalysis(data);
-      setActiveTab('analysis');
+      setActiveTab(data.drift ? 'dna' : 'analysis');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Analysis failed');
       setErrorType('analysis');
@@ -357,6 +514,26 @@ function StoryContent() {
             >
               AI Analysis {!analysis && <span className="hidden sm:inline text-xs ml-1">(run analysis first)</span>}
             </button>
+            <button
+              onClick={() => setActiveTab('dna')}
+              disabled={!analysis?.drift}
+              className={`px-3 sm:px-4 py-2.5 font-medium text-sm sm:text-base border-b-2 transition-colors flex items-center gap-1.5 ${
+                activeTab === 'dna'
+                  ? 'border-emerald-600 text-emerald-600'
+                  : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 disabled:opacity-40 disabled:cursor-not-allowed'
+              }`}
+            >
+              Story DNA
+              {analysis?.drift && (
+                <span className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
+                  analysis.drift.driftScore >= 50 ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' :
+                  analysis.drift.driftScore >= 20 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300' :
+                  'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                }`}>
+                  {analysis.drift.driftScore}
+                </span>
+              )}
+            </button>
           </div>
         </div>
 
@@ -421,6 +598,10 @@ function StoryContent() {
             {/* Ad after sources list */}
             <AdBanner slot="SOURCES_BOTTOM_AD" format="horizontal" />
           </>
+        )}
+
+        {activeTab === 'dna' && analysis?.drift && (
+          <StoryDNA drift={analysis.drift} topic={query!} snapshotCount={analysis.snapshotCount ?? 1} />
         )}
 
         {activeTab === 'analysis' && analysis && (

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "powershell -Command \"$env:NODE_PATH = (Resolve-Path './node_modules').Path; npx next dev\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -13,6 +13,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
     "axios": "^1.13.6",
+    "geist": "^1.7.0",
     "next": "^15.3.3",
     "react": "19.2.4",
     "react-dom": "19.2.4",

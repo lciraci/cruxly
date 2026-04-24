@@ -1,26 +1,91 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+interface LocalArticle {
+  title: string;
+  url: string;
+  publishedAt: string;
+  source: { name: string; id: string | null };
+  description: string | null;
+}
 
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [email, setEmail] = useState('');
   const [location, setLocation] = useState('');
   const [locationEditing, setLocationEditing] = useState(false);
+  const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'denied' | 'error'>('idle');
+  const [localNews, setLocalNews] = useState<LocalArticle[]>([]);
+  const [localNewsLoading, setLocalNewsLoading] = useState(false);
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const router = useRouter();
+
+  const fetchLocalNews = useCallback(async (loc: string) => {
+    if (!loc) return;
+    setLocalNewsLoading(true);
+    try {
+      const res = await fetch(
+        `/api/news/local?location=${encodeURIComponent(loc)}`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setLocalNews(data.articles || []);
+      }
+    } catch {
+      // silently fail — local news is optional
+    } finally {
+      setLocalNewsLoading(false);
+    }
+  }, []);
 
   // Load saved location from localStorage
   useEffect(() => {
     const saved = localStorage.getItem('cruxly-location');
-    if (saved) setLocation(saved);
-  }, []);
+    if (saved) {
+      setLocation(saved);
+      fetchLocalNews(saved);
+    }
+  }, [fetchLocalNews]);
 
   const saveLocation = (value: string) => {
     setLocation(value);
     localStorage.setItem('cruxly-location', value);
-    setLocationEditing(false);
+  };
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoStatus('error');
+      return;
+    }
+    setGeoStatus('loading');
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&zoom=10`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          const data = await res.json();
+          const addr = data.address || {};
+          const city = addr.city || addr.town || addr.village || addr.county || '';
+          const state = addr.state || '';
+          const country = addr.country_code?.toUpperCase() || '';
+          const parts = [city, state, country].filter(Boolean);
+          const locationName = parts.join(', ');
+          saveLocation(locationName);
+          fetchLocalNews(locationName);
+          setGeoStatus('idle');
+        } catch {
+          setGeoStatus('error');
+        }
+      },
+      (err) => {
+        setGeoStatus(err.code === err.PERMISSION_DENIED ? 'denied' : 'error');
+      },
+      { enableHighAccuracy: false, timeout: 10000 }
+    );
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -192,60 +257,165 @@ export default function Home() {
           </form>
 
           {/* Location selector */}
-          <div className="flex items-center justify-center mt-3 gap-2">
-            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
+          <div className="mt-4 sm:mt-5">
             {locationEditing ? (
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
                   const input = (e.target as HTMLFormElement).elements.namedItem('loc') as HTMLInputElement;
-                  saveLocation(input.value.trim());
+                  const val = input.value.trim();
+                  if (val) {
+                    saveLocation(val);
+                    fetchLocalNews(val);
+                    setLocationEditing(false);
+                  }
                 }}
-                className="flex items-center gap-2"
+                className="flex items-center justify-center gap-2"
               >
+                <svg className="w-5 h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
                 <input
                   name="loc"
                   type="text"
                   defaultValue={location}
-                  placeholder="City, State (e.g. Charlotte, NC)"
+                  placeholder="Enter city, e.g. Charlotte, NC"
                   autoFocus
-                  className="px-3 py-1 text-sm rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 focus:outline-none focus:border-blue-500 w-56"
+                  className="px-4 py-2.5 text-sm sm:text-base rounded-full border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 focus:outline-none focus:border-blue-500 w-64"
                 />
-                <button type="submit" className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium">
-                  Save
+                <button type="submit" className="px-5 py-2.5 text-sm bg-green-600 hover:bg-green-700 text-white rounded-full font-medium transition-colors">
+                  Go
                 </button>
                 <button
                   type="button"
                   onClick={() => setLocationEditing(false)}
-                  className="text-xs text-slate-400 hover:underline"
+                  className="px-3 py-2.5 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                 >
                   Cancel
                 </button>
               </form>
-            ) : (
-              <button
-                onClick={() => setLocationEditing(true)}
-                className="text-sm text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
-              >
-                {location ? location : 'Set your location for local news'}
-              </button>
-            )}
-            {location && !locationEditing && (
-              <button
-                onClick={() => { saveLocation(''); }}
-                className="text-xs text-slate-400 hover:text-red-500 transition-colors"
-                title="Clear location"
-              >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : location ? (
+              <div className="flex items-center justify-center gap-3 px-5 py-3 rounded-full bg-white/10 dark:bg-slate-800/60 border border-slate-200/30 dark:border-slate-700/50 backdrop-blur-sm">
+                <svg className="w-5 h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
-              </button>
+                <span className="text-base font-medium text-slate-700 dark:text-slate-200">
+                  {location}
+                </span>
+                <button
+                  onClick={() => setLocationEditing(true)}
+                  className="text-sm text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                  title="Change location"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => { saveLocation(''); setGeoStatus('idle'); setLocalNews([]); }}
+                  className="text-sm text-slate-400 hover:text-red-500 transition-colors"
+                  title="Remove location"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <button
+                  onClick={detectLocation}
+                  disabled={geoStatus === 'loading'}
+                  className="flex items-center gap-2 px-5 py-2.5 rounded-full bg-green-600 hover:bg-green-700 text-white font-medium transition-colors disabled:opacity-50 text-sm sm:text-base"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {geoStatus === 'loading'
+                    ? 'Detecting...'
+                    : geoStatus === 'denied'
+                      ? 'Location denied — check browser settings'
+                      : geoStatus === 'error'
+                        ? 'Try again'
+                        : 'Detect my location'}
+                </button>
+                <span className="text-slate-400 text-sm">or</span>
+                <button
+                  onClick={() => setLocationEditing(true)}
+                  className="text-sm sm:text-base text-blue-500 dark:text-blue-400 hover:text-blue-600 dark:hover:text-blue-300 font-medium transition-colors"
+                >
+                  enter it manually
+                </button>
+              </div>
             )}
           </div>
         </div>
+
+        {/* Local News */}
+        {(localNewsLoading || localNews.length > 0) && (
+          <div className="max-w-4xl mx-auto mb-12 sm:mb-16">
+            <div className="flex items-center gap-2 mb-4 sm:mb-6 px-1">
+              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <h2 className="text-xl sm:text-2xl font-semibold text-slate-800 dark:text-slate-200">
+                Local News
+              </h2>
+              <span className="text-sm text-slate-400 dark:text-slate-500">
+                {location}
+              </span>
+            </div>
+
+            {localNewsLoading ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                {[...Array(3)].map((_, i) => (
+                  <div key={i} className="animate-pulse bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4">
+                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-1/3 mb-3" />
+                    <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded mb-2" />
+                    <div className="h-5 bg-slate-200 dark:bg-slate-700 rounded w-3/4 mb-3" />
+                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-full" />
+                    <div className="h-4 bg-slate-200 dark:bg-slate-700 rounded w-2/3 mt-1" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                {localNews.map((article, idx) => (
+                  <a
+                    key={idx}
+                    href={article.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:shadow-lg transition-all hover:-translate-y-0.5 p-4 flex flex-col"
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300">
+                        {article.source.name}
+                      </span>
+                      {article.publishedAt && (
+                        <span className="text-xs text-slate-400 dark:text-slate-500 ml-auto">
+                          {new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-100 line-clamp-2 mb-2 group-hover:text-blue-600">
+                      {article.title}
+                    </h3>
+                    {article.description && (
+                      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 line-clamp-2 flex-1">
+                        {article.description}
+                      </p>
+                    )}
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Trending Topics */}
         <div className="max-w-4xl mx-auto">

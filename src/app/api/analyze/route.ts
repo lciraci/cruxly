@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
 import { EnrichedArticle } from '@/types/news';
-import { StoryAnalysis, SourceAnalysis, FactClaim, BiasIndicator } from '@/types/analysis';
+import { StoryAnalysis, SourceAnalysis, FactClaim, BiasIndicator, StorySnapshot } from '@/types/analysis';
+import { normalizeStoryId, getSnapshots, saveSnapshot, computeDrift } from '@/lib/story-store';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -142,13 +143,38 @@ Return your analysis as valid JSON matching this structure:
       articleUrl: articles[sa.sourceId].url,
     }));
 
+    const now = new Date().toISOString();
+    const storyId = normalizeStoryId(topic);
+
+    // Load existing snapshots for this story (before saving the new one)
+    const existingSnapshots = getSnapshots(topic);
+
+    // Build and persist the new snapshot
+    const snapshot: StorySnapshot = {
+      storyId,
+      topic,
+      timestamp: now,
+      consensusFacts: analysisData.consensusFacts,
+      disputedClaims: analysisData.disputedClaims,
+      summary: analysisData.summary,
+      sourceCount: articles.length,
+    };
+    saveSnapshot(snapshot);
+
+    // Compute narrative drift when there's at least one prior snapshot
+    const drift = existingSnapshots.length > 0
+      ? computeDrift(snapshot, existingSnapshots)
+      : undefined;
+
     const analysis: StoryAnalysis = {
       topic,
       consensusFacts: analysisData.consensusFacts,
       disputedClaims: analysisData.disputedClaims,
       sourceAnalyses,
       summary: analysisData.summary,
-      timestamp: new Date().toISOString(),
+      timestamp: now,
+      drift,
+      snapshotCount: existingSnapshots.length + 1,
     };
 
     return NextResponse.json(analysis);

@@ -30,4 +30,30 @@ export interface StoryAnalysis {
   sourceAnalyses: SourceAnalysis[];
   summary: string;
   timestamp: string;
+  drift?: NarrativeDrift;      // Present when a previous snapshot exists
+  snapshotCount?: number;      // Total times this story has been analyzed
+}
+
+export interface StorySnapshot {
+  storyId: string;
+  topic: string;
+  timestamp: string;
+  consensusFacts: FactClaim[];
+  disputedClaims: FactClaim[];
+  summary: string;
+  sourceCount: number;
+}
+
+export interface NarrativeDrift {
+  firstSeen: string;           // ISO timestamp of very first analysis
+  daysSinceFirst: number;
+  previousTimestamp: string;   // ISO timestamp of previous analysis
+  analysisCount: number;       // How many times analyzed total
+  driftScore: number;          // 0–100: how much the story has shifted
+  gainedConsensus: string[];   // Claims that became consensus since last time
+  lostConsensus: string[];     // Claims that dropped from consensus
+  newDisputed: string[];       // Newly surfaced disputed claims
+  resolvedDisputed: string[];  // Disputes that disappeared
+  firstSummary: string;        // Original summary for side-by-side comparison
+  previousSummary: string;     // Previous summary
 }
