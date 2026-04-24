@@ -216,8 +216,10 @@ function StoryContent() {
   const [analysis, setAnalysis] = useState<StoryAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<'search' | 'analysis'>('search');
-  const [activeTab, setActiveTab] = useState<'sources' | 'analysis' | 'dna'>('sources');
+  const [activeTab, setActiveTab] = useState<'sources' | 'analysis' | 'dna' | 'clusters'>('sources');
   const [notice, setNotice] = useState<string | null>(null);
+  const [clusters, setClusters] = useState<any[]>([]);
+  const [clusteringLoading, setClusteringLoading] = useState(false);
   const [diversity, setDiversity] = useState<{
     uniqueSources: number;
     sourceNames: string[];
@@ -293,11 +295,40 @@ function StoryContent() {
       const data = await response.json();
       setAnalysis(data);
       setActiveTab(data.drift ? 'dna' : 'analysis');
+
+      // Fetch clustering in parallel
+      clusterArticles();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Analysis failed');
       setErrorType('analysis');
     } finally {
       setAnalyzing(false);
+    }
+  };
+
+  const clusterArticles = async () => {
+    if (articles.length === 0 || !query) return;
+
+    try {
+      setClusteringLoading(true);
+
+      const response = await fetch('/api/clustering', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          articles,
+          query,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setClusters(data.clusters || []);
+      }
+    } catch (_err) {
+      // Clustering is optional, silently fail
+    } finally {
+      setClusteringLoading(false);
     }
   };
 
@@ -534,6 +565,18 @@ function StoryContent() {
                 </span>
               )}
             </button>
+            {clusters.length > 0 && (
+              <button
+                onClick={() => setActiveTab('clusters')}
+                className={`px-3 sm:px-4 py-2.5 font-medium text-sm sm:text-base border-b-2 transition-colors flex items-center gap-1.5 ${
+                  activeTab === 'clusters'
+                    ? 'border-indigo-600 text-indigo-600'
+                    : 'border-transparent text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                }`}
+              >
+                Stories ({clusters.length})
+              </button>
+            )}
           </div>
         </div>
 
@@ -576,9 +619,11 @@ function StoryContent() {
                     <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-100 mb-2 line-clamp-3">
                       {article.title}
                     </h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-3 flex-1">
-                      {article.description}
-                    </p>
+                    {article.description && (
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-3 flex-1">
+                        {article.description}
+                      </p>
+                    )}
                     <a
                       href={article.url}
                       target="_blank"
@@ -602,6 +647,80 @@ function StoryContent() {
 
         {activeTab === 'dna' && analysis?.drift && (
           <StoryDNA drift={analysis.drift} topic={query!} snapshotCount={analysis.snapshotCount ?? 1} />
+        )}
+
+        {activeTab === 'clusters' && (
+          <div className="space-y-4 sm:space-y-6">
+            {clusteringLoading && (
+              <div className="text-center py-8">
+                <div className="inline-block">
+                  <div className="animate-spin">
+                    <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">Analyzing stories...</p>
+              </div>
+            )}
+            {!clusteringLoading && clusters.map((cluster, idx) => (
+              <div key={cluster.storyId} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-5 sm:p-6 shadow-md">
+                <div className="mb-4">
+                  <h3 className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100 mb-1">
+                    {cluster.title}
+                  </h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {cluster.articles.length} sources covering this story
+                  </p>
+                </div>
+
+                {/* Common theme */}
+                <div className="mb-4 p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg border border-indigo-100 dark:border-indigo-800">
+                  <p className="text-sm font-medium text-indigo-900 dark:text-indigo-200 mb-1">Common theme:</p>
+                  <p className="text-sm text-indigo-800 dark:text-indigo-300">{cluster.commonTheme}</p>
+                </div>
+
+                {/* Framing difference */}
+                <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-100 dark:border-amber-800">
+                  <p className="text-sm font-medium text-amber-900 dark:text-amber-200 mb-1">How it's covered differently:</p>
+                  <p className="text-sm text-amber-800 dark:text-amber-300">{cluster.framingDifference}</p>
+                </div>
+
+                {/* Key differences */}
+                {cluster.keyDifferences.length > 0 && (
+                  <div className="mb-4">
+                    <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Key differences:</p>
+                    <ul className="space-y-1">
+                      {cluster.keyDifferences.map((diff: string, i: number) => (
+                        <li key={i} className="text-sm text-slate-600 dark:text-slate-400 flex gap-2">
+                          <span className="text-indigo-600 dark:text-indigo-400 font-bold shrink-0">•</span>
+                          <span>{diff}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Articles in this cluster */}
+                <div className="border-t border-slate-200 dark:border-slate-700 pt-3">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase mb-2">Sources in this story:</p>
+                  <div className="flex flex-wrap gap-2">
+                    {cluster.articles.map((article: any, i: number) => (
+                      <a
+                        key={i}
+                        href={article.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs px-2 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-200 dark:hover:bg-indigo-800 transition-colors"
+                      >
+                        {article.source} ↗
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
 
         {activeTab === 'analysis' && analysis && (

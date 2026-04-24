@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 interface LocalArticle {
   title: string;
@@ -47,6 +47,15 @@ export default function Home() {
       fetchLocalNews(saved);
     }
   }, [fetchLocalNews]);
+
+  // Auto-refresh local news every 5 minutes
+  const locationRef = useRef(location);
+  useEffect(() => { locationRef.current = location; }, [location]);
+  useEffect(() => {
+    if (!location) return;
+    const id = setInterval(() => fetchLocalNews(locationRef.current), 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, [location, fetchLocalNews]);
 
   const saveLocation = (value: string) => {
     setLocation(value);
@@ -365,9 +374,6 @@ export default function Home() {
               <h2 className="text-xl sm:text-2xl font-semibold text-slate-800 dark:text-slate-200">
                 Local News
               </h2>
-              <span className="text-sm text-slate-400 dark:text-slate-500">
-                {location}
-              </span>
             </div>
 
             {localNewsLoading ? (

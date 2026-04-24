@@ -19,12 +19,37 @@ const STOP_WORDS = new Set([
   'could', 'after', 'about', 'would', 'there', 'their', 'which', 'being',
 ]);
 
+// Entity extraction — finds proper nouns (people, places, orgs)
+function extractEntities(text: string): { entities: string[]; terms: string[] } {
+  const words = text.split(/\s+/);
+  const entities: string[] = [];
+  const terms: string[] = [];
+
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i].trim();
+    // Capitalized word (likely proper noun) that's not a stop word
+    if (word && /^[A-Z]/.test(word) && !STOP_WORDS.has(word.toLowerCase())) {
+      // Capture multi-word entities (e.g., "Donald Trump", "New York")
+      let entity = word;
+      if (i + 1 < words.length && /^[A-Z]/.test(words[i + 1])) {
+        entity = `${word} ${words[i + 1]}`;
+      }
+      entities.push(entity);
+    } else if (word.length > 2 && !STOP_WORDS.has(word.toLowerCase())) {
+      terms.push(word.toLowerCase());
+    }
+  }
+
+  return { entities: [...new Set(entities)], terms: [...new Set(terms)] };
+}
+
 // ---------------------------------------------------------------------------
-// Relevance scoring — strict filtering to avoid junk results
+// Relevance scoring with entity matching
 // ---------------------------------------------------------------------------
 function relevanceScore(
   article: { title: string; description?: string | null; content?: string | null },
-  query: string
+  query: string,
+  queryEntities: string[] = []
 ): number {
   const queryTerms = query
     .toLowerCase()
@@ -48,6 +73,12 @@ function relevanceScore(
     if (title.includes(term)) titleMatches++;
   }
 
+  // Entity matching — boost if named entities from query appear in article
+  let entityMatches = 0;
+  for (const entity of queryEntities) {
+    if (fullText.includes(entity.toLowerCase())) entityMatches++;
+  }
+
   // Base score: % of query terms found in full text
   let score = textMatches / queryTerms.length;
 
@@ -60,12 +91,17 @@ function relevanceScore(
     score += 0.15;
   }
 
+  // ENTITY BOOST: +0.2 per entity match (e.g., searching "Biden" → articles mentioning Biden rank higher)
+  if (queryEntities.length > 0) {
+    score += 0.2 * (entityMatches / queryEntities.length);
+  }
+
   // PENALTY: -0.3 if NONE of the query terms appear in the title
   if (titleMatches === 0) {
     score -= 0.3;
   }
 
-  return Math.max(0, Math.min(1.3, score));
+  return Math.max(0, Math.min(1.5, score));
 }
 
 // ---------------------------------------------------------------------------
@@ -81,6 +117,27 @@ function recencyBoost(publishedAt: string): number {
   if (hoursAgo < 48) return 0.1;    // Last 2 days
   if (hoursAgo < 72) return 0.05;   // Last 3 days
   return 0;                          // Older: no boost
+}
+
+// Jaccard similarity — measure overlap between two texts (for deduplication)
+function jaccardSimilarity(text1: string, text2: string): number {
+  const words1 = new Set(text1.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+  const words2 = new Set(text2.toLowerCase().split(/\s+/).filter(w => w.length > 2));
+
+  const intersection = new Set([...words1].filter(w => words2.has(w)));
+  const union = new Set([...words1, ...words2]);
+
+  return union.size === 0 ? 0 : intersection.size / union.size;
+}
+
+// Temporal cluster key — articles published within ±6 hours belong to same cluster
+function getClusterKey(publishedAt: string): string {
+  const date = new Date(publishedAt);
+  // Round to nearest 6-hour block
+  const hours = Math.floor(date.getHours() / 6) * 6;
+  const clusterDate = new Date(date);
+  clusterDate.setHours(hours, 0, 0, 0);
+  return clusterDate.toISOString().split('T')[0] + `_${hours}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -206,32 +263,58 @@ async function fetchNewsAPIArticles(
 //  2. Maximum 2 articles per source (no Fox News flood)
 //  3. Minimum 3 different bias categories in final results
 //  4. Prioritize: relevance + recency → bias diversity → trust score
+//  5. Temporal clustering: group articles by publish time (±6 hours)
 // ---------------------------------------------------------------------------
 function enforceDiversity(
   articles: EnrichedArticle[],
   query: string,
-  limit: number
-): { articles: EnrichedArticle[]; lowCoverage: boolean } {
+  limit: number,
+  queryEntities: string[] = []
+): { articles: EnrichedArticle[]; lowCoverage: boolean; clusters: Map<string, EnrichedArticle[]> } {
   // Step 1: Score relevance + recency, filter out junk (< 50% match)
   const scored = articles
     .map(a => ({
       article: a,
-      score: relevanceScore(a, query) + recencyBoost(a.publishedAt),
+      score: relevanceScore(a, query, queryEntities) + recencyBoost(a.publishedAt),
     }))
     .filter(a => a.score >= 0.5) // Strict: must match at least 50%
     .sort((a, b) => b.score - a.score);
 
   const lowCoverage = scored.length < 6;
 
-  // Step 2: Deduplicate by title similarity
-  const seen = new Set<string>();
-  const deduped = scored.filter(({ article }) => {
-    // Normalize title for comparison
-    const titleNorm = article.title.substring(0, 60).toLowerCase().replace(/[^a-z0-9]/g, '');
-    if (seen.has(titleNorm)) return false;
-    seen.add(titleNorm);
-    return true;
-  });
+  // Step 2: Deduplicate by Jaccard similarity (title + description)
+  // Keep only articles that are significantly different from previously kept ones
+  const deduped: typeof scored = [];
+  const seenTexts: string[] = [];
+
+  for (const item of scored) {
+    const articleText = `${item.article.title} ${item.article.description || ''}`;
+    let isDuplicate = false;
+
+    for (const seenText of seenTexts) {
+      const similarity = jaccardSimilarity(articleText, seenText);
+      // 70% similarity = considered duplicate
+      if (similarity > 0.7) {
+        isDuplicate = true;
+        break;
+      }
+    }
+
+    if (!isDuplicate) {
+      deduped.push(item);
+      seenTexts.push(articleText);
+    }
+  }
+
+  // Step 2.5: Temporal clustering — group articles by publish time
+  const clusters = new Map<string, EnrichedArticle[]>();
+  for (const { article } of deduped) {
+    const clusterKey = getClusterKey(article.publishedAt);
+    if (!clusters.has(clusterKey)) {
+      clusters.set(clusterKey, []);
+    }
+    clusters.get(clusterKey)!.push(article);
+  }
 
   // Step 3: Build diverse set — max 2 per source
   const bySource = new Map<string, typeof deduped>();
@@ -281,7 +364,7 @@ function enforceDiversity(
     }
   }
 
-  return { articles: result, lowCoverage };
+  return { articles: result, lowCoverage, clusters };
 }
 
 // ---------------------------------------------------------------------------
@@ -302,6 +385,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Extract entities from query for smarter matching
+    const { entities: queryEntities } = extractEntities(query);
+
     // Fetch from BOTH sources in parallel
     // NewsAPI is PRIMARY (keyword search), RSS is SUPPLEMENTARY (topic feeds)
     const [rssArticles, newsApiArticles] = await Promise.all([
@@ -312,8 +398,8 @@ export async function GET(request: NextRequest) {
     // Merge: NewsAPI first (better keyword matching), then RSS
     const allArticles = [...newsApiArticles, ...rssArticles];
 
-    // Apply diversity engine
-    const { articles: diverseArticles, lowCoverage } = enforceDiversity(allArticles, query, pageSize);
+    // Apply diversity engine with entity matching and temporal clustering
+    const { articles: diverseArticles, lowCoverage, clusters } = enforceDiversity(allArticles, query, pageSize, queryEntities);
 
     // Stats for the response
     const biasDistribution: Record<string, number> = {};
@@ -326,6 +412,13 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Temporal cluster info
+    const clusterInfo = Array.from(clusters.entries()).map(([key, articles]) => ({
+      timeCluster: key,
+      articleCount: articles.length,
+      sources: [...new Set(articles.map(a => a.source.name))],
+    }));
+
     return NextResponse.json({
       query,
       totalResults: diverseArticles.length,
@@ -336,6 +429,7 @@ export async function GET(request: NextRequest) {
         biasDistribution,
         rssArticlesFound: rssArticles.length,
         newsApiArticlesFound: newsApiArticles.length,
+        temporalClusters: clusterInfo,
       },
       ...(lowCoverage && {
         notice: 'Limited coverage found for this topic. Try broader search terms.',
@@ -344,6 +438,7 @@ export async function GET(request: NextRequest) {
         sourcesQueried: RSS_FEEDS.length + NEWS_SOURCES.filter(s => s.newsApiId).length,
         timestamp: new Date().toISOString(),
         location: location || null,
+        extractedEntities: queryEntities,
       },
     });
 
