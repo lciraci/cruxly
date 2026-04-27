@@ -1,87 +1,57 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
-
-const WAITLIST_FILE = path.join(process.cwd(), 'data', 'waitlist.json');
-
-interface WaitlistEntry {
-  email: string;
-  timestamp: string;
-  source: string;
-}
-
-async function ensureDataDir() {
-  const dir = path.dirname(WAITLIST_FILE);
-  try {
-    await fs.access(dir);
-  } catch (_err) {
-    await fs.mkdir(dir, { recursive: true });
-  }
-}
-
-async function getWaitlist(): Promise<WaitlistEntry[]> {
-  try {
-    const data = await fs.readFile(WAITLIST_FILE, 'utf-8');
-    return JSON.parse(data);
-  } catch (_err) {
-    return [];
-  }
-}
-
-async function saveWaitlist(entries: WaitlistEntry[]) {
-  await ensureDataDir();
-  await fs.writeFile(WAITLIST_FILE, JSON.stringify(entries, null, 2));
-}
+import { getSupabaseClient } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return NextResponse.json(
+      { error: 'SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY not configured' },
+      { status: 503 }
+    );
+  }
+
   try {
     const { email } = await request.json();
 
     if (!email || !email.includes('@')) {
-      return NextResponse.json(
-        { error: 'Valid email required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Valid email required' }, { status: 400 });
     }
 
-    const waitlist = await getWaitlist();
+    const normalizedEmail = (email as string).toLowerCase().trim();
 
-    // Check for duplicate
-    if (waitlist.some((entry) => entry.email.toLowerCase() === email.toLowerCase())) {
-      return NextResponse.json({ message: 'Already on the waitlist' });
+    const { error } = await supabase
+      .from('waitlist')
+      .insert({ email: normalizedEmail, source: 'homepage' });
+
+    if (error) {
+      if (error.code === '23505') {
+        return NextResponse.json({ message: 'Already on the waitlist' });
+      }
+      console.error('Waitlist insert error:', error);
+      return NextResponse.json({ error: 'Failed to join waitlist' }, { status: 500 });
     }
 
-    // Add new entry
-    waitlist.push({
-      email: email.toLowerCase().trim(),
-      timestamp: new Date().toISOString(),
-      source: 'homepage',
-    });
+    const { count } = await supabase
+      .from('waitlist')
+      .select('*', { count: 'exact', head: true });
 
-    await saveWaitlist(waitlist);
-
-    return NextResponse.json({
-      message: 'Added to waitlist',
-      count: waitlist.length,
-    });
+    return NextResponse.json({ message: 'Added to waitlist', count: count ?? 1 });
   } catch (error) {
     console.error('Waitlist error:', error);
-    return NextResponse.json(
-      { error: 'Failed to join waitlist' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to join waitlist' }, { status: 500 });
   }
 }
 
-// GET: See how many signups (for you to check)
 export async function GET() {
-  try {
-    const waitlist = await getWaitlist();
-    return NextResponse.json({
-      count: waitlist.length,
-      entries: waitlist,
-    });
-  } catch (_err) {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
     return NextResponse.json({ count: 0, entries: [] });
   }
+
+  const { data, count } = await supabase
+    .from('waitlist')
+    .select('*', { count: 'exact' })
+    .order('created_at', { ascending: true });
+
+  return NextResponse.json({ count: count ?? 0, entries: data ?? [] });
 }

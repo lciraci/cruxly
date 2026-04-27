@@ -147,7 +147,7 @@ ${JSON.stringify(articleSummaries, null, 2)}`;
     const storyId = normalizeStoryId(topic);
 
     // Load existing snapshots for this story (before saving the new one)
-    const existingSnapshots = getSnapshots(topic);
+    const existingSnapshots = await getSnapshots(topic);
 
     // Build and persist the new snapshot
     const snapshot: StorySnapshot = {
@@ -159,7 +159,7 @@ ${JSON.stringify(articleSummaries, null, 2)}`;
       summary: analysisData.summary,
       sourceCount: articles.length,
     };
-    saveSnapshot(snapshot);
+    await saveSnapshot(snapshot);
 
     // Compute narrative drift when there's at least one prior snapshot
     const drift = existingSnapshots.length > 0

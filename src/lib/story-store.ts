@@ -1,23 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import { getSupabaseClient } from './supabase';
 import { StorySnapshot, FactClaim, NarrativeDrift } from '@/types/analysis';
-
-const STORE_PATH = path.join(process.cwd(), '.story-snapshots.json');
-
-// ─── Persistence ─────────────────────────────────────────────────────────────
-
-function loadStore(): Record<string, StorySnapshot[]> {
-  try {
-    const raw = fs.readFileSync(STORE_PATH, 'utf-8');
-    return JSON.parse(raw);
-  } catch {
-    return {};
-  }
-}
-
-function saveStore(store: Record<string, StorySnapshot[]>): void {
-  fs.writeFileSync(STORE_PATH, JSON.stringify(store, null, 2), 'utf-8');
-}
 
 // ─── Story ID ─────────────────────────────────────────────────────────────────
 
@@ -39,28 +21,60 @@ export function normalizeStoryId(topic: string): string {
 
 // ─── CRUD ─────────────────────────────────────────────────────────────────────
 
-export function getSnapshots(topic: string): StorySnapshot[] {
-  const store = loadStore();
-  const id = normalizeStoryId(topic);
-  return store[id] || [];
+export async function getSnapshots(topic: string): Promise<StorySnapshot[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
+  const storyId = normalizeStoryId(topic);
+  const { data, error } = await supabase
+    .from('story_snapshots')
+    .select('*')
+    .eq('story_id', storyId)
+    .order('timestamp', { ascending: true })
+    .limit(20);
+
+  if (error || !data) return [];
+
+  return data.map(row => ({
+    storyId: row.story_id,
+    topic: row.topic,
+    timestamp: row.timestamp,
+    consensusFacts: row.consensus_facts,
+    disputedClaims: row.disputed_claims,
+    summary: row.summary,
+    sourceCount: row.source_count,
+  }));
 }
 
-export function saveSnapshot(snapshot: StorySnapshot): void {
-  const store = loadStore();
-  const id = snapshot.storyId;
-  if (!store[id]) store[id] = [];
-  store[id].push(snapshot);
-  // Keep only the last 20 snapshots per story
-  if (store[id].length > 20) store[id] = store[id].slice(-20);
-  saveStore(store);
+export async function saveSnapshot(snapshot: StorySnapshot): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  await supabase.from('story_snapshots').insert({
+    story_id: snapshot.storyId,
+    topic: snapshot.topic,
+    timestamp: snapshot.timestamp,
+    consensus_facts: snapshot.consensusFacts,
+    disputed_claims: snapshot.disputedClaims,
+    summary: snapshot.summary,
+    source_count: snapshot.sourceCount,
+  });
+
+  // Trim to last 20 snapshots per story
+  const { data } = await supabase
+    .from('story_snapshots')
+    .select('id')
+    .eq('story_id', snapshot.storyId)
+    .order('timestamp', { ascending: true });
+
+  if (data && data.length > 20) {
+    const toDelete = data.slice(0, data.length - 20).map((r: { id: number }) => r.id);
+    await supabase.from('story_snapshots').delete().in('id', toDelete);
+  }
 }
 
 // ─── Drift computation ────────────────────────────────────────────────────────
 
-/**
- * Fuzzy-matches two claim strings by word overlap (Jaccard on significant words).
- * Returns true when ≥30% of significant words overlap — good enough for LLM-paraphrased claims.
- */
 function claimsMatch(a: string, b: string): boolean {
   const sig = (s: string) =>
     new Set(s.toLowerCase().split(/\s+/).filter(w => w.length > 4 && !STOP_WORDS.has(w)));
@@ -86,7 +100,7 @@ function findDropped(current: FactClaim[], previous: FactClaim[]): string[] {
 
 export function computeDrift(
   current: StorySnapshot,
-  snapshots: StorySnapshot[],  // all historical snapshots, oldest first
+  snapshots: StorySnapshot[],
 ): NarrativeDrift {
   const first = snapshots[0];
   const previous = snapshots[snapshots.length - 1];
