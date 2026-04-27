@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "powershell -Command \"$env:NODE_PATH = (Resolve-Path './node_modules').Path; npx next dev\"",
+    "cruxly": "powershell -Command \"$env:NODE_PATH = (Resolve-Path './node_modules').Path; npx next dev\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

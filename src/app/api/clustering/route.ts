@@ -40,24 +40,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const prompt = `You are a news analyst grouping articles by the underlying story they cover.
+    const systemInstructions = `You are a news analyst grouping articles by the underlying story they cover.
 
-Search query: "${query}"
-
-Articles to cluster:
-${articles.map((a, i) => `
-${i}. [${a.source.name}] ${a.title}
-   Description: ${a.description || 'N/A'}
-`).join('\n')}
-
-Analyze these articles and group them by STORY (the underlying event/topic they're reporting on, not just keywords).
-
-For each cluster, identify:
+Group articles by STORY (the underlying event/topic, not just keywords). For each cluster identify:
 1. What is the core story?
 2. How do different sources FRAME or EMPHASIZE different aspects?
-3. What are the key differences in coverage (not just wording, but actual emphasis/angle)?
+3. What are the key differences in coverage (emphasis/angle, not just wording)?
 
-Return as JSON:
+Return ONLY this JSON structure, no other text:
 {
   "clusters": [
     {
@@ -72,18 +62,31 @@ Return as JSON:
       ]
     }
   ]
-}
+}`;
 
-Return ONLY valid JSON, no other text.`;
+    const userMessage = `Search query: "${query}"
+
+Articles to cluster:
+${articles.map((a, i) => `
+${i}. [${a.source.name}] ${a.title}
+   Description: ${a.description || 'N/A'}
+`).join('\n')}`;
 
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2000,
       temperature: 0.3,
+      system: [
+        {
+          type: 'text',
+          text: systemInstructions,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
       messages: [
         {
           role: 'user',
-          content: prompt,
+          content: userMessage,
         },
       ],
     });

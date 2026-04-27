@@ -40,30 +40,7 @@ export async function POST(request: NextRequest) {
       url: article.url,
     }));
 
-    const prompt = `You are analyzing news coverage of: "${topic}"
-
-You have ${articles.length} articles from sources with different political leanings:
-${articleSummaries.map(a => `${a.index}. ${a.source} (${a.bias}): ${a.title}`).join('\n')}
-
-Full article details:
-${JSON.stringify(articleSummaries, null, 2)}
-
-Please analyze these articles and provide:
-
-1. CONSENSUS FACTS: Factual claims that appear in multiple sources (especially across different biases). For each fact, list which sources mention it and your confidence level.
-
-2. DISPUTED CLAIMS: Claims that only appear in some sources or are framed very differently across sources.
-
-3. SOURCE-BY-SOURCE ANALYSIS: For each article:
-   - Key factual claims it makes
-   - Bias indicators (emotional language, framing, omissions, source selection)
-   - Emotional tone
-   - Facts it omits that other sources include
-   - A score (0-100) for factual accuracy and completeness on THIS specific story
-
-4. SUMMARY: A neutral, fact-based summary synthesizing what we can confidently know about this topic from these sources.
-
-Return your analysis as valid JSON matching this structure:
+    const systemInstructions = `You are a news bias analyst. When given articles covering a topic, analyze them and return a JSON object with this exact structure:
 {
   "consensusFacts": [
     {
@@ -100,17 +77,40 @@ Return your analysis as valid JSON matching this structure:
     }
   ],
   "summary": "string"
-}`;
+}
+
+Analysis rules:
+1. CONSENSUS FACTS: Factual claims that appear in multiple sources (especially across different biases). List which sources mention each fact and your confidence level.
+2. DISPUTED CLAIMS: Claims that only appear in some sources or are framed very differently across sources.
+3. SOURCE-BY-SOURCE ANALYSIS: For each article provide key factual claims, bias indicators (emotional language, framing, omissions, source selection), emotional tone, facts it omits that other sources include, and a score (0-100) for factual accuracy and completeness on this specific story.
+4. SUMMARY: A neutral, fact-based summary synthesizing what we can confidently know from these sources.
+
+Return ONLY valid JSON — no markdown, no explanation.`;
+
+    const userMessage = `Analyze news coverage of: "${topic}"
+
+${articles.length} articles from sources with different political leanings:
+${articleSummaries.map(a => `${a.index}. ${a.source} (${a.bias}): ${a.title}`).join('\n')}
+
+Full article details:
+${JSON.stringify(articleSummaries, null, 2)}`;
 
     // Call Claude for analysis
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-6',
       max_tokens: 4000,
-      temperature: 0.3, // Lower temperature for more factual analysis
+      temperature: 0.3,
+      system: [
+        {
+          type: 'text',
+          text: systemInstructions,
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
       messages: [
         {
           role: 'user',
-          content: prompt,
+          content: userMessage,
         },
       ],
     });
