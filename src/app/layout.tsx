@@ -6,13 +6,13 @@ import Navbar from "@/components/Navbar";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Cruxly - The Crux of the Story",
+  title: "Cruxly — One story. Every side.",
   description:
-    "Compare news from multiple sources across the political spectrum. AI-powered fact extraction and bias detection.",
+    "Search any news topic and instantly see how different outlets frame it, what facts they share, and what they're each leaving out.",
   openGraph: {
-    title: "Cruxly - The Crux of the Story",
+    title: "Cruxly — One story. Every side.",
     description:
-      "Compare news across the political spectrum with AI-powered bias detection.",
+      "Search any news topic and instantly see how different outlets frame it, what facts they share, and what they're each leaving out.",
     type: "website",
   },
 };
@@ -27,7 +27,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
+      className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased dark`}
     >
       <head>
         {/* Google AdSense — only loads when NEXT_PUBLIC_ADSENSE_ID is set */}
