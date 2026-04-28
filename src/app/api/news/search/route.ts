@@ -147,14 +147,13 @@ async function fetchRSSArticles(query: string): Promise<EnrichedArticle[]> {
   const allArticles: EnrichedArticle[] = [];
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
-  // Fetch all RSS feeds in parallel with a timeout
   const feedPromises = RSS_FEEDS.map(async (feedConfig) => {
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-
-      const feed = await rssParser.parseURL(feedConfig.feedUrl);
-      clearTimeout(timeout);
+      // Race the parse against a hard 5-second timeout
+      const feed = await Promise.race([
+        rssParser.parseURL(feedConfig.feedUrl),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
+      ]);
 
       const source = getSourceById(feedConfig.sourceId);
       if (!source || !feed.items) return [];
