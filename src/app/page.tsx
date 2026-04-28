@@ -11,7 +11,7 @@ interface LocalArticle {
   description: string | null;
 }
 
-const trendingTopics = [
+const FALLBACK_TOPICS = [
   { topic: 'Trump tariffs China', category: 'Economy' },
   { topic: 'AI regulation technology', category: 'Tech' },
   { topic: 'Ukraine war NATO', category: 'Geopolitics' },
@@ -28,6 +28,8 @@ export default function Home() {
   const [localNews, setLocalNews] = useState<LocalArticle[]>([]);
   const [localNewsLoading, setLocalNewsLoading] = useState(false);
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [trendingTopics, setTrendingTopics] = useState(FALLBACK_TOPICS);
+  const [trendingLoading, setTrendingLoading] = useState(true);
   const router = useRouter();
 
   const fetchLocalNews = useCallback(async (loc: string) => {
@@ -50,6 +52,16 @@ export default function Home() {
     const saved = localStorage.getItem('cruxly-location');
     if (saved) { setLocation(saved); fetchLocalNews(saved); }
   }, [fetchLocalNews]);
+
+  useEffect(() => {
+    fetch('/api/news/trending')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.trending?.length) setTrendingTopics(data.trending);
+      })
+      .catch(() => {/* keep fallback */})
+      .finally(() => setTrendingLoading(false));
+  }, []);
 
   const locationRef = useRef(location);
   useEffect(() => { locationRef.current = location; }, [location]);
@@ -259,26 +271,42 @@ export default function Home() {
           Trending now
         </p>
         <div className="max-w-2xl divide-y divide-white/[0.04]">
-          {trendingTopics.map((t, i) => (
-            <button
-              key={t.topic}
-              onClick={() => router.push(`/story?q=${encodeURIComponent(t.topic)}`)}
-              className="w-full flex items-center gap-5 py-4 text-left group hover:bg-white/[0.02] transition-colors px-3 -mx-3 rounded-lg"
-            >
-              <span className="text-xs font-mono text-zinc-700 w-5 shrink-0 tabular-nums">
-                {String(i + 1).padStart(2, '0')}
-              </span>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded border border-white/[0.08] text-zinc-400 shrink-0 tracking-wide">
-                {t.category.toUpperCase()}
-              </span>
-              <span className="text-zinc-300 text-sm sm:text-base group-hover:text-zinc-100 transition-colors flex-1 font-medium">
-                {t.topic}
-              </span>
-              <svg className="w-4 h-4 text-zinc-700 group-hover:text-zinc-400 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          ))}
+          {trendingLoading
+            ? [...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center gap-5 py-4 px-3">
+                  <div className="w-5 h-3 bg-white/[0.05] rounded animate-pulse shrink-0" />
+                  <div className="w-16 h-5 bg-white/[0.05] rounded animate-pulse shrink-0" />
+                  <div className="flex-1 h-4 bg-white/[0.05] rounded animate-pulse" />
+                </div>
+              ))
+            : trendingTopics.map((t, i) => {
+                const shortTitle = t.topic.length > 72
+                  ? t.topic.slice(0, 69).trimEnd() + '…'
+                  : t.topic;
+                // Strip source attribution (e.g. " - Reuters" at end of NewsAPI titles)
+                const cleanTitle = shortTitle.replace(/\s[-–]\s[^-–]{2,30}$/, '');
+                return (
+                  <button
+                    key={i}
+                    onClick={() => router.push(`/story?q=${encodeURIComponent(cleanTitle)}`)}
+                    className="w-full flex items-center gap-5 py-4 text-left group hover:bg-white/[0.02] transition-colors px-3 -mx-3 rounded-lg"
+                  >
+                    <span className="text-xs font-mono text-zinc-700 w-5 shrink-0 tabular-nums">
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded border border-white/[0.08] text-zinc-400 shrink-0 tracking-wide">
+                      {t.category.toUpperCase()}
+                    </span>
+                    <span className="text-zinc-300 text-sm sm:text-base group-hover:text-zinc-100 transition-colors flex-1 font-medium leading-snug">
+                      {cleanTitle}
+                    </span>
+                    <svg className="w-4 h-4 text-zinc-700 group-hover:text-zinc-400 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                );
+              })
+          }
         </div>
       </div>
 
