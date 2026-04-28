@@ -29,7 +29,7 @@ export default function Home() {
   const [localNewsLoading, setLocalNewsLoading] = useState(false);
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [trendingTopics, setTrendingTopics] = useState(FALLBACK_TOPICS);
-  const [trendingLoading, setTrendingLoading] = useState(true);
+  const [trendingLoading, setTrendingLoading] = useState(false);
   const router = useRouter();
 
   const fetchLocalNews = useCallback(async (loc: string) => {
@@ -126,187 +126,184 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#0d1117]">
 
-      {/* ── Hero ─────────────────────────────────────────────────────── */}
-      <div className="container mx-auto px-4 pt-16 sm:pt-24 pb-12 sm:pb-16">
-        <header className="mb-10 sm:mb-14">
-          {/* Wordmark */}
-          <div className="mb-8 sm:mb-10">
-            <span className="text-6xl sm:text-8xl md:text-9xl font-black tracking-widest text-zinc-100 uppercase leading-none select-none">
-              CRUXLY<span className="text-amber-400">.</span>
-            </span>
-            <div className="mt-3 h-px w-24 bg-amber-400/40" />
-          </div>
+      {/* ── Split Hero ───────────────────────────────────────────────── */}
+      <div className="container mx-auto px-4 pt-16 sm:pt-24 pb-16">
+        <div className="flex flex-col lg:flex-row lg:gap-0">
 
-          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug mb-4 text-zinc-200">
-            Stop reading one side of the story.
-          </h2>
-          <p className="text-base sm:text-lg text-zinc-500 max-w-md leading-relaxed">
-            Type any topic, get every major outlet&apos;s take — where they agree,
-            where they spin, and what none of them want you to notice.
-          </p>
-        </header>
+          {/* Left: Brand + Search */}
+          <div className="flex-1 lg:pr-16 lg:border-r lg:border-white/[0.06] pb-12 lg:pb-0">
+            {/* Wordmark */}
+            <div className="mb-8 sm:mb-10">
+              <span className="text-6xl sm:text-8xl md:text-9xl font-black tracking-widest text-zinc-100 uppercase leading-none select-none">
+                CRUXLY<span className="text-amber-400">.</span>
+              </span>
+              <div className="mt-3 h-px w-24 bg-amber-400/40" />
+            </div>
 
-        {/* ── Search ───────────────────────────────────────────────────── */}
-        <div className="max-w-2xl mb-16 sm:mb-20">
-          <form onSubmit={handleSearch} className="relative">
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="e.g. Trump tariffs, Ukraine war, climate bill…"
-              className="w-full pl-12 pr-28 py-4 text-base rounded-xl border border-white/[0.08] bg-white/[0.04] text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20 transition-all"
-            />
-            <button
-              type="submit"
-              className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-zinc-900 rounded-lg font-semibold transition-colors text-sm"
-            >
-              Search
-            </button>
-          </form>
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug mb-4 text-zinc-200">
+              Stop reading one side of the story.
+            </h2>
+            <p className="text-base sm:text-lg text-zinc-500 max-w-md leading-relaxed mb-10">
+              Type any topic, get every major outlet&apos;s take — where they agree,
+              where they spin, and what none of them want you to notice.
+            </p>
 
-          {/* Location */}
-          <div className="mt-4">
-            {locationEditing ? (
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const input = (e.target as HTMLFormElement).elements.namedItem('loc') as HTMLInputElement;
-                  const val = input.value.trim();
-                  if (val) { saveLocation(val); fetchLocalNews(val); setLocationEditing(false); }
-                }}
-                className="flex items-center gap-2"
+            {/* Search */}
+            <form onSubmit={handleSearch} className="relative max-w-lg">
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="e.g. Trump tariffs, Ukraine war, climate bill…"
+                className="w-full pl-12 pr-28 py-4 text-base rounded-xl border border-white/[0.08] bg-white/[0.04] text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20 transition-all"
+              />
+              <button
+                type="submit"
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-zinc-900 rounded-lg font-semibold transition-colors text-sm"
               >
-                <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <input
-                  name="loc"
-                  type="text"
-                  defaultValue={location}
-                  placeholder="Enter city, e.g. Charlotte, NC"
-                  autoFocus
-                  className="px-3 py-2 text-sm rounded-lg border border-white/[0.08] bg-white/[0.04] text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-400/40 w-56"
-                />
-                <button type="submit" className="px-4 py-2 text-sm bg-amber-400 hover:bg-amber-300 text-zinc-900 rounded-lg font-medium transition-colors">Go</button>
-                <button type="button" onClick={() => setLocationEditing(false)} className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">Cancel</button>
-              </form>
-            ) : location ? (
-              <div className="flex items-center gap-3">
-                <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                <span className="text-sm text-zinc-300">{location}</span>
-                <button onClick={() => setLocationEditing(true)} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">change</button>
-                <button onClick={() => { saveLocation(''); setLocalNews([]); }} className="text-xs text-zinc-500 hover:text-rose-400 transition-colors">remove</button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={detectLocation}
-                  disabled={geoStatus === 'loading'}
-                  className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-200 disabled:opacity-50 transition-colors"
+                Search
+              </button>
+            </form>
+
+            {/* Location */}
+            <div className="mt-4">
+              {locationEditing ? (
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const input = (e.target as HTMLFormElement).elements.namedItem('loc') as HTMLInputElement;
+                    const val = input.value.trim();
+                    if (val) { saveLocation(val); fetchLocalNews(val); setLocationEditing(false); }
+                  }}
+                  className="flex items-center gap-2"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  {geoStatus === 'loading' ? 'Detecting…' : geoStatus === 'denied' ? 'Location denied' : 'Add local news'}
-                </button>
-                <span className="text-zinc-700 text-xs">·</span>
-                <button onClick={() => setLocationEditing(true)} className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">enter manually</button>
+                  <input
+                    name="loc"
+                    type="text"
+                    defaultValue={location}
+                    placeholder="Enter city, e.g. Charlotte, NC"
+                    autoFocus
+                    className="px-3 py-2 text-sm rounded-lg border border-white/[0.08] bg-white/[0.04] text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-400/40 w-56"
+                  />
+                  <button type="submit" className="px-4 py-2 text-sm bg-amber-400 hover:bg-amber-300 text-zinc-900 rounded-lg font-medium transition-colors">Go</button>
+                  <button type="button" onClick={() => setLocationEditing(false)} className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">Cancel</button>
+                </form>
+              ) : location ? (
+                <div className="flex items-center gap-3">
+                  <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="text-sm text-zinc-300">{location}</span>
+                  <button onClick={() => setLocationEditing(true)} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">change</button>
+                  <button onClick={() => { saveLocation(''); setLocalNews([]); }} className="text-xs text-zinc-500 hover:text-rose-400 transition-colors">remove</button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={detectLocation}
+                    disabled={geoStatus === 'loading'}
+                    className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-200 disabled:opacity-50 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {geoStatus === 'loading' ? 'Detecting…' : geoStatus === 'denied' ? 'Location denied' : 'Add local news'}
+                  </button>
+                  <span className="text-zinc-700 text-xs">·</span>
+                  <button onClick={() => setLocationEditing(true)} className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">enter manually</button>
+                </div>
+              )}
+            </div>
+
+            {/* Local News */}
+            {(localNewsLoading || localNews.length > 0) && (
+              <div className="mt-10">
+                <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase mb-4">
+                  Local — {location}
+                </p>
+                {localNewsLoading ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+                    {[...Array(4)].map((_, i) => (
+                      <div key={i} className="animate-pulse h-20 rounded-lg bg-white/[0.03] border border-white/[0.05]" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+                    {localNews.map((article, idx) => (
+                      <a
+                        key={idx}
+                        href={article.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group flex flex-col p-4 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.1] transition-all"
+                      >
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-xs font-medium text-amber-400/80">{article.source.name}</span>
+                          {article.publishedAt && (
+                            <span className="text-xs text-zinc-600 ml-auto">
+                              {new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="text-sm text-zinc-300 group-hover:text-zinc-100 line-clamp-2 leading-snug transition-colors">
+                          {article.title}
+                        </h3>
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
-        </div>
-      </div>
 
-      {/* ── Local News ───────────────────────────────────────────────── */}
-      {(localNewsLoading || localNews.length > 0) && (
-        <div className="container mx-auto px-4 pb-14">
-          <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase mb-5">
-            Local — {location}
-          </p>
-          {localNewsLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl">
-              {[...Array(4)].map((_, i) => (
-                <div key={i} className="animate-pulse h-20 rounded-lg bg-white/[0.03] border border-white/[0.05]" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-3xl">
-              {localNews.map((article, idx) => (
-                <a
-                  key={idx}
-                  href={article.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex flex-col p-4 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.1] transition-all"
-                >
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="text-xs font-medium text-amber-400/80">{article.source.name}</span>
-                    {article.publishedAt && (
-                      <span className="text-xs text-zinc-600 ml-auto">
-                        {new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                      </span>
-                    )}
-                  </div>
-                  <h3 className="text-sm text-zinc-300 group-hover:text-zinc-100 line-clamp-2 leading-snug transition-colors">
-                    {article.title}
-                  </h3>
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Trending ─────────────────────────────────────────────────── */}
-      <div className="container mx-auto px-4 pb-20">
-        <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase mb-5">
-          Trending now
-        </p>
-        <div className="max-w-2xl divide-y divide-white/[0.04]">
-          {trendingLoading
-            ? [...Array(5)].map((_, i) => (
-                <div key={i} className="flex items-center gap-5 py-4 px-3">
-                  <div className="w-5 h-3 bg-white/[0.05] rounded animate-pulse shrink-0" />
-                  <div className="w-16 h-5 bg-white/[0.05] rounded animate-pulse shrink-0" />
-                  <div className="flex-1 h-4 bg-white/[0.05] rounded animate-pulse" />
-                </div>
-              ))
-            : trendingTopics.map((t, i) => {
-                const shortTitle = t.topic.length > 72
-                  ? t.topic.slice(0, 69).trimEnd() + '…'
+          {/* Right: Trending */}
+          <div className="lg:w-[42%] lg:pl-16 pt-2">
+            <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase mb-6">
+              Trending now
+            </p>
+            <div className="divide-y divide-white/[0.05]">
+              {trendingTopics.map((t, i) => {
+                const shortTitle = t.topic.length > 80
+                  ? t.topic.slice(0, 77).trimEnd() + '…'
                   : t.topic;
-                // Strip source attribution (e.g. " - Reuters" at end of NewsAPI titles)
                 const cleanTitle = shortTitle.replace(/\s[-–]\s[^-–]{2,30}$/, '');
                 return (
                   <button
                     key={i}
                     onClick={() => router.push(`/story?q=${encodeURIComponent(cleanTitle)}`)}
-                    className="w-full flex items-center gap-5 py-4 text-left group hover:bg-white/[0.02] transition-colors px-3 -mx-3 rounded-lg"
+                    className="w-full text-left py-5 group hover:bg-white/[0.02] transition-colors -mx-3 px-3 rounded-lg"
                   >
-                    <span className="text-xs font-mono text-zinc-700 w-5 shrink-0 tabular-nums">
-                      {String(i + 1).padStart(2, '0')}
-                    </span>
-                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded border border-white/[0.08] text-zinc-400 shrink-0 tracking-wide">
-                      {t.category.toUpperCase()}
-                    </span>
-                    <span className="text-zinc-300 text-sm sm:text-base group-hover:text-zinc-100 transition-colors flex-1 font-medium leading-snug">
-                      {cleanTitle}
-                    </span>
-                    <svg className="w-4 h-4 text-zinc-700 group-hover:text-zinc-400 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
+                    <div className="flex items-start gap-4">
+                      <span className="text-xs font-mono text-zinc-700 w-6 shrink-0 tabular-nums pt-1">
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-semibold text-zinc-500 tracking-widest uppercase mb-1.5">
+                          {t.category}
+                        </p>
+                        <p className="text-zinc-200 text-base sm:text-lg font-semibold leading-snug group-hover:text-white transition-colors">
+                          {cleanTitle}
+                        </p>
+                      </div>
+                      <svg className="w-4 h-4 text-zinc-700 group-hover:text-amber-400 transition-colors shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </div>
                   </button>
                 );
-              })
-          }
+              })}
+            </div>
+          </div>
+
         </div>
       </div>
 
