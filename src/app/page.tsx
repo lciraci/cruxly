@@ -169,7 +169,7 @@ export default function Home() {
             </form>
 
             {/* Location */}
-            <div className="mt-4">
+            <div className="mt-5">
               {locationEditing ? (
                 <form
                   onSubmit={(e) => {
@@ -178,48 +178,74 @@ export default function Home() {
                     const val = input.value.trim();
                     if (val) { saveLocation(val); fetchLocalNews(val); setLocationEditing(false); }
                   }}
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 max-w-lg"
                 >
-                  <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <input
-                    name="loc"
-                    type="text"
-                    defaultValue={location}
-                    placeholder="Enter city, e.g. Charlotte, NC"
-                    autoFocus
-                    className="px-3 py-2 text-sm rounded-lg border border-white/[0.08] bg-white/[0.04] text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-400/40 w-56"
-                  />
-                  <button type="submit" className="px-4 py-2 text-sm bg-amber-400 hover:bg-amber-300 text-zinc-900 rounded-lg font-medium transition-colors">Go</button>
-                  <button type="button" onClick={() => setLocationEditing(false)} className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">Cancel</button>
-                </form>
-              ) : location ? (
-                <div className="flex items-center gap-3">
-                  <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <span className="text-sm text-zinc-300">{location}</span>
-                  <button onClick={() => setLocationEditing(true)} className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors">change</button>
-                  <button onClick={() => { saveLocation(''); setLocalNews([]); }} className="text-xs text-zinc-500 hover:text-rose-400 transition-colors">remove</button>
-                </div>
-              ) : (
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={detectLocation}
-                    disabled={geoStatus === 'loading'}
-                    className="flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-200 disabled:opacity-50 transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="relative flex-1">
+                    <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    {geoStatus === 'loading' ? 'Detecting…' : geoStatus === 'denied' ? 'Location denied' : 'Add local news'}
+                    <input
+                      name="loc"
+                      type="text"
+                      defaultValue={location}
+                      placeholder="City, state — e.g. Charlotte, NC"
+                      autoFocus
+                      className="w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border border-white/[0.1] bg-white/[0.04] text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20 transition-all"
+                    />
+                  </div>
+                  <button type="submit" className="px-4 py-2.5 text-sm bg-amber-400 hover:bg-amber-300 text-zinc-900 rounded-lg font-semibold transition-colors shrink-0">Save</button>
+                  <button type="button" onClick={() => setLocationEditing(false)} className="px-3 py-2.5 text-sm text-zinc-500 hover:text-zinc-300 rounded-lg border border-white/[0.06] hover:border-white/[0.12] transition-all shrink-0">Cancel</button>
+                </form>
+              ) : location ? (
+                /* Active location chip */
+                <div className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-xl border border-amber-400/25 bg-amber-400/[0.07]">
+                  <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="text-sm font-medium text-amber-200">{location}</span>
+                  <div className="flex items-center gap-0.5 ml-1">
+                    <button
+                      onClick={() => setLocationEditing(true)}
+                      className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] transition-all"
+                      aria-label="Edit location"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => { saveLocation(''); setLocalNews([]); }}
+                      className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-400/[0.08] transition-all"
+                      aria-label="Remove location"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* No location — two clear actions */
+                <div className="flex flex-wrap items-center gap-3">
+                  <button
+                    onClick={detectLocation}
+                    disabled={geoStatus === 'loading'}
+                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/[0.1] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.16] text-zinc-300 disabled:opacity-50 transition-all text-sm font-medium"
+                  >
+                    <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    {geoStatus === 'loading' ? 'Detecting location…' : geoStatus === 'denied' ? 'Location access denied' : 'Add local news'}
                   </button>
-                  <span className="text-zinc-700 text-xs">·</span>
-                  <button onClick={() => setLocationEditing(true)} className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors">enter manually</button>
+                  <button
+                    onClick={() => setLocationEditing(true)}
+                    className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors underline underline-offset-2 decoration-zinc-700 hover:decoration-zinc-500"
+                  >
+                    Enter city manually
+                  </button>
                 </div>
               )}
             </div>
