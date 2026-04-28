@@ -302,10 +302,16 @@ export default function Home() {
                   ? t.topic.slice(0, 77).trimEnd() + '…'
                   : t.topic;
                 const cleanTitle = shortTitle.replace(/\s[-–]\s[^-–]{2,30}$/, '');
+                // Extract key terms for search (named entities + long words, max 5)
+                const searchQuery = (() => {
+                  const words = cleanTitle.split(/\s+/).filter(w => w.replace(/[^\w]/g, '').length > 2);
+                  const key = words.filter(w => /^[A-Z]/.test(w) || w.length > 5);
+                  return (key.length >= 2 ? key : words).slice(0, 5).join(' ');
+                })();
                 return (
                   <button
                     key={i}
-                    onClick={() => router.push(`/story?q=${encodeURIComponent(cleanTitle)}`)}
+                    onClick={() => router.push(`/story?q=${encodeURIComponent(searchQuery)}`)}
                     className="w-full text-left py-5 group hover:bg-white/[0.02] transition-colors -mx-3 px-3 rounded-lg"
                   >
                     <div className="flex items-start gap-4">

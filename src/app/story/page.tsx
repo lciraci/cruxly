@@ -478,6 +478,23 @@ function StoryContent() {
         {/* ── Sources tab ────────────────────────────────────────────── */}
         {activeTab === 'sources' && (
           <>
+            {articles.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <div className="w-14 h-14 rounded-full bg-white/[0.04] border border-white/[0.08] flex items-center justify-center mb-4">
+                  <svg className="w-6 h-6 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </div>
+                <p className="text-zinc-300 font-semibold mb-1">No articles found</p>
+                <p className="text-zinc-600 text-sm max-w-xs">Try different keywords or a broader topic.</p>
+                <button
+                  onClick={() => router.push('/')}
+                  className="mt-5 px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200 border border-white/[0.08] hover:border-white/[0.16] rounded-lg transition-all"
+                >
+                  Back to home
+                </button>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {articles.map((article, idx) => (
                 <article
