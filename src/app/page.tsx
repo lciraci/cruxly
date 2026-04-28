@@ -117,11 +117,18 @@ export default function Home() {
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <div className="container mx-auto px-4 pt-16 sm:pt-24 pb-12 sm:pb-16">
         <header className="mb-10 sm:mb-14">
-          <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold tracking-tight leading-[1.05] mb-6">
-            <span className="block text-zinc-100">Stop reading</span>
-            <span className="block text-amber-400">one side.</span>
-          </h1>
-          <p className="text-base sm:text-lg text-zinc-400 max-w-md leading-relaxed">
+          {/* Wordmark */}
+          <div className="mb-8 sm:mb-10">
+            <span className="text-6xl sm:text-8xl md:text-9xl font-black tracking-widest text-zinc-100 uppercase leading-none select-none">
+              CRUXLY<span className="text-amber-400">.</span>
+            </span>
+            <div className="mt-3 h-px w-24 bg-amber-400/40" />
+          </div>
+
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug mb-4 text-zinc-200">
+            Stop reading one side of the story.
+          </h2>
+          <p className="text-base sm:text-lg text-zinc-500 max-w-md leading-relaxed">
             Type any topic, get every major outlet&apos;s take — where they agree,
             where they spin, and what none of them want you to notice.
           </p>
