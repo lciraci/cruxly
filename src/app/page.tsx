@@ -118,12 +118,12 @@ export default function Home() {
       <div className="container mx-auto px-4 pt-16 sm:pt-24 pb-12 sm:pb-16">
         <header className="mb-10 sm:mb-14">
           <h1 className="text-5xl sm:text-7xl md:text-8xl font-bold tracking-tight leading-[1.05] mb-6">
-            <span className="block text-zinc-100">One story.</span>
-            <span className="block text-amber-400">Every side.</span>
+            <span className="block text-zinc-100">Stop reading</span>
+            <span className="block text-amber-400">one side.</span>
           </h1>
           <p className="text-base sm:text-lg text-zinc-400 max-w-md leading-relaxed">
-            Search any topic and instantly see how different outlets frame it,
-            what facts they share, and what they&apos;re each leaving out.
+            Type any topic, get every major outlet&apos;s take — where they agree,
+            where they spin, and what none of them want you to notice.
           </p>
         </header>
 
