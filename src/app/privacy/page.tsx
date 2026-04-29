@@ -1,82 +1,97 @@
-import Link from 'next/link';
+export const metadata = {
+  title: 'Privacy Policy — Cruxly',
+  description: 'How Cruxly handles your data.',
+};
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <div className="container mx-auto px-4 py-12 max-w-3xl">
-        <Link
-          href="/"
-          className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
-        >
-          Cruxly
-        </Link>
+    <div className="min-h-screen bg-[#0d1117]">
+      <div className="container mx-auto px-4 py-16 sm:py-24 max-w-3xl">
 
-        <h1 className="text-3xl font-bold text-slate-800 dark:text-slate-100 mt-8 mb-6">
-          Privacy Policy
-        </h1>
+        {/* Header */}
+        <div className="mb-14">
+          <p className="text-xs font-semibold tracking-widest text-amber-400/70 uppercase mb-4">Legal</p>
+          <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-zinc-100 mb-4">
+            Privacy Policy
+          </h1>
+          <p className="text-sm text-zinc-600">Last updated: April 28, 2026</p>
+        </div>
 
-        <div className="prose dark:prose-invert max-w-none space-y-6 text-slate-700 dark:text-slate-300">
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Last updated: April 11, 2026
-          </p>
+        <div className="h-px bg-white/[0.06] mb-14" />
+
+        <div className="space-y-12 text-zinc-400">
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-              What we collect
-            </h2>
-            <p>
-              Cruxly collects minimal data to provide its service:
+            <h2 className="text-lg font-bold text-zinc-200 mb-4">What we collect</h2>
+            <p className="leading-relaxed mb-4">
+              Cruxly is built to collect as little as possible:
             </p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>Search queries</strong> you enter to find news topics</li>
-              <li><strong>Email address</strong> if you join the Pro waitlist (optional)</li>
-              <li><strong>Basic analytics</strong> (page views, anonymous usage patterns)</li>
+            <ul className="space-y-3">
+              {[
+                { label: 'Search queries', desc: 'The topics you type in, sent to news APIs and our AI to generate analysis.' },
+                { label: 'Email address', desc: 'Only if you voluntarily join the Pro waitlist. Never required to use the site.' },
+                { label: 'Anonymous analytics', desc: 'Page views and usage patterns — no personally identifiable information.' },
+              ].map((item) => (
+                <li key={item.label} className="flex items-start gap-3 text-sm leading-relaxed">
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400/60 shrink-0" />
+                  <span><span className="font-semibold text-zinc-300">{item.label}</span> — {item.desc}</span>
+                </li>
+              ))}
             </ul>
-            <p>
-              We do not collect passwords, payment information, or personal identification data.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-              How we use your data
-            </h2>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li>Search queries are sent to news APIs and AI services to generate analysis results</li>
-              <li>Waitlist emails are used only to notify you about Cruxly Pro launch</li>
-              <li>We never sell your data to third parties</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-              Third-party services
-            </h2>
-            <p>Cruxly uses the following third-party services:</p>
-            <ul className="list-disc list-inside space-y-1 ml-4">
-              <li><strong>NewsAPI.org</strong> — to fetch news articles</li>
-              <li><strong>Anthropic (Claude AI)</strong> — to analyze articles for bias and facts</li>
-              <li><strong>Vercel</strong> — hosting and infrastructure</li>
-              <li><strong>Google AdSense</strong> — advertising (displays ads on the site)</li>
-            </ul>
-            <p>
-              Each service has its own privacy policy. We encourage you to review them.
+            <p className="mt-4 text-sm leading-relaxed">
+              We do not collect passwords, payment information, or any personal identification data.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-              Cookies and advertising
-            </h2>
-            <p>
-              We use cookies for basic site functionality. Third-party advertising partners
-              (including Google AdSense) may use cookies to serve ads based on your
-              browsing history. You can opt out of personalized advertising at{' '}
+            <h2 className="text-lg font-bold text-zinc-200 mb-4">How we use your data</h2>
+            <ul className="space-y-3">
+              {[
+                'Search queries are passed to news APIs and AI services solely to generate the analysis you requested.',
+                'Waitlist emails are used only to notify you when Cruxly Pro launches. Nothing else.',
+                'We never sell, rent, or share your data with third parties for marketing purposes.',
+              ].map((item, i) => (
+                <li key={i} className="flex items-start gap-3 text-sm leading-relaxed">
+                  <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-amber-400/60 shrink-0" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-bold text-zinc-200 mb-4">Third-party services</h2>
+            <p className="leading-relaxed mb-4">
+              Cruxly relies on the following external services to function. Each has its own privacy policy.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                { name: 'NewsAPI.org', desc: 'Fetches news articles from publishers worldwide.' },
+                { name: 'Anthropic (Claude AI)', desc: 'Analyzes articles for bias, facts, and framing.' },
+                { name: 'Vercel', desc: 'Hosts and serves the application.' },
+                { name: 'Supabase', desc: 'Stores waitlist emails securely.' },
+                { name: 'Google AdSense', desc: 'Displays ads on the site (if enabled).' },
+              ].map((s) => (
+                <div key={s.name} className="p-4 rounded-lg border border-white/[0.05] bg-white/[0.02]">
+                  <p className="text-sm font-semibold text-zinc-300 mb-1">{s.name}</p>
+                  <p className="text-sm text-zinc-500">{s.desc}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-bold text-zinc-200 mb-4">Cookies &amp; advertising</h2>
+            <p className="leading-relaxed mb-3">
+              We use minimal cookies for basic site functionality (e.g. remembering your local news city preference in your browser).
+            </p>
+            <p className="leading-relaxed">
+              If Google AdSense is active, Google may use cookies to serve ads based on your browsing history. You can opt out at{' '}
               <a
                 href="https://www.google.com/settings/ads"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 dark:text-blue-400 hover:underline"
+                className="text-amber-400 hover:text-amber-300 transition-colors"
               >
                 Google Ad Settings
               </a>.
@@ -84,30 +99,30 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-              Your rights
-            </h2>
-            <p>
-              You can request deletion of your data (including waitlist email) at any time
-              by contacting us. We will delete your data within 30 days.
+            <h2 className="text-lg font-bold text-zinc-200 mb-4">Your rights</h2>
+            <p className="leading-relaxed">
+              You can request deletion of your data — including your waitlist email — at any time. We will delete it within 30 days. Just reach out at the address below.
             </p>
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold text-slate-800 dark:text-slate-100">
-              Contact
-            </h2>
-            <p>
-              For privacy questions, contact us at privacy@cruxly.com
+            <h2 className="text-lg font-bold text-zinc-200 mb-4">Changes to this policy</h2>
+            <p className="leading-relaxed">
+              If we make material changes we will update the date at the top of this page. Continued use of Cruxly after changes constitutes acceptance of the updated policy.
             </p>
           </section>
+
         </div>
 
-        <div className="mt-12 pt-6 border-t border-slate-200 dark:border-slate-700">
-          <Link href="/" className="text-blue-600 dark:text-blue-400 hover:underline">
-            Back to Cruxly
-          </Link>
-        </div>
+        <div className="h-px bg-white/[0.06] mt-14 mb-10" />
+
+        <p className="text-sm text-zinc-500">
+          Privacy questions?{' '}
+          <a href="mailto:privacy@cruxly.com" className="text-amber-400 hover:text-amber-300 transition-colors">
+            privacy@cruxly.com
+          </a>
+        </p>
+
       </div>
     </div>
   );
