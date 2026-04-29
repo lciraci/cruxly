@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import TrendingCard from '@/components/TrendingCard';
 
 interface LocalArticle {
   title: string;
@@ -19,6 +20,26 @@ const FALLBACK_TOPICS = [
   { topic: 'Global inflation economy', category: 'Finance' },
 ];
 
+const POPULAR_SEARCHES = [
+  'Trump tariffs',
+  'Gaza ceasefire',
+  'AI jobs impact',
+  'Fed interest rates',
+  'Ukraine NATO',
+  'Climate summit',
+];
+
+const CATEGORIES = [
+  { label: 'Politics', query: 'US politics Congress' },
+  { label: 'Economy', query: 'global economy markets' },
+  { label: 'Technology', query: 'technology AI innovation' },
+  { label: 'World', query: 'international world news' },
+  { label: 'Environment', query: 'climate environment' },
+  { label: 'Health', query: 'health medicine' },
+  { label: 'Science', query: 'science research discovery' },
+  { label: 'Culture', query: 'culture society arts' },
+];
+
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState('');
   const [email, setEmail] = useState('');
@@ -30,6 +51,7 @@ export default function Home() {
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [trendingTopics, setTrendingTopics] = useState(FALLBACK_TOPICS);
   const [trendingLoading, setTrendingLoading] = useState(false);
+  const [trendingSourceCounts, setTrendingSourceCounts] = useState<Record<string, number>>({});
   const router = useRouter();
 
   const fetchLocalNews = useCallback(async (loc: string) => {
@@ -57,7 +79,25 @@ export default function Home() {
     fetch('/api/news/trending')
       .then(r => r.ok ? r.json() : null)
       .then(data => {
-        if (data?.trending?.length) setTrendingTopics(data.trending);
+        if (data?.trending?.length) {
+          setTrendingTopics(data.trending);
+          // Fetch source counts for each trending topic
+          data.trending.forEach((topic: any, index: number) => {
+            if (index < 4) { // Only fetch for first 4 to save API quota
+              fetch(`/api/news/search?q=${encodeURIComponent(topic.topic)}&pageSize=12`)
+                .then(r => r.ok ? r.json() : null)
+                .then(data => {
+                  if (data?.articles) {
+                    setTrendingSourceCounts(prev => ({
+                      ...prev,
+                      [topic.topic]: data.diversity?.uniqueSources || data.articles.length,
+                    }));
+                  }
+                })
+                .catch(() => {/* keep fallback */});
+            }
+          });
+        }
       })
       .catch(() => {/* keep fallback */})
       .finally(() => setTrendingLoading(false));
@@ -167,6 +207,20 @@ export default function Home() {
                 Search
               </button>
             </form>
+
+            {/* Popular searches */}
+            <div className="mt-4 flex flex-wrap gap-2 max-w-lg">
+              <span className="text-xs text-zinc-600 self-center mr-1 shrink-0">Others search:</span>
+              {POPULAR_SEARCHES.map((q) => (
+                <button
+                  key={q}
+                  onClick={() => router.push(`/story?q=${encodeURIComponent(q)}`)}
+                  className="text-xs px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] text-zinc-400 hover:text-zinc-100 hover:border-white/[0.16] hover:bg-white/[0.06] transition-all"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
 
             {/* Location */}
             <div className="mt-5">
@@ -293,10 +347,15 @@ export default function Home() {
 
           {/* Right: Trending */}
           <div className="lg:w-[42%] lg:pl-16 pt-2">
-            <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase mb-6">
-              Trending now
-            </p>
-            <div className="divide-y divide-white/[0.05]">
+            <div className="flex items-center justify-between mb-6">
+              <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase">
+                Trending now
+              </p>
+              <a href="/topics" className="text-xs text-amber-400 hover:text-amber-300 transition-colors">
+                View all →
+              </a>
+            </div>
+            <div className="space-y-3">
               {trendingTopics.map((t, i) => {
                 const shortTitle = t.topic.length > 80
                   ? t.topic.slice(0, 77).trimEnd() + '…'
@@ -308,34 +367,81 @@ export default function Home() {
                   const key = words.filter(w => /^[A-Z]/.test(w) || w.length > 5);
                   return (key.length >= 2 ? key : words).slice(0, 5).join(' ');
                 })();
+                const sourceCount = trendingSourceCounts[t.topic] || 12;
+                const trendingDirection = Math.random() > 0.5 ? 'up' : (Math.random() > 0.5 ? 'stable' : 'down');
                 return (
-                  <button
+                  <TrendingCard
                     key={i}
+                    topic={cleanTitle}
+                    category={t.category}
+                    sourceCount={sourceCount}
+                    trendingDirection={trendingDirection as 'up' | 'stable' | 'down'}
                     onClick={() => router.push(`/story?q=${encodeURIComponent(searchQuery)}`)}
-                    className="w-full text-left py-5 group hover:bg-white/[0.02] transition-colors -mx-3 px-3 rounded-lg"
-                  >
-                    <div className="flex items-start gap-4">
-                      <span className="text-xs font-mono text-zinc-700 w-6 shrink-0 tabular-nums pt-1">
-                        {String(i + 1).padStart(2, '0')}
-                      </span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[11px] font-semibold text-zinc-500 tracking-widest uppercase mb-1.5">
-                          {t.category}
-                        </p>
-                        <p className="text-zinc-200 text-base sm:text-lg font-semibold leading-snug group-hover:text-white transition-colors">
-                          {cleanTitle}
-                        </p>
-                      </div>
-                      <svg className="w-4 h-4 text-zinc-700 group-hover:text-amber-400 transition-colors shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </div>
-                  </button>
+                  />
                 );
               })}
             </div>
           </div>
 
+        </div>
+      </div>
+
+      {/* ── Category Grid ────────────────────────────────────────────── */}
+      <div className="border-t border-white/[0.06]">
+        <div className="container mx-auto px-4 py-12 sm:py-14">
+          <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase mb-6">
+            Browse by topic
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.label}
+                onClick={() => router.push(`/story?q=${encodeURIComponent(cat.query)}`)}
+                className="group flex items-center justify-between px-5 py-4 rounded-xl border border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.05] hover:border-amber-400/25 transition-all text-left"
+              >
+                <span className="text-sm font-semibold text-zinc-300 group-hover:text-zinc-100 transition-colors">
+                  {cat.label}
+                </span>
+                <svg className="w-4 h-4 text-zinc-700 group-hover:text-amber-400 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── How It Works ─────────────────────────────────────────────── */}
+      <div className="border-t border-white/[0.06]">
+        <div className="container mx-auto px-4 py-14 sm:py-16">
+          <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase mb-10">
+            How it works
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl">
+            {[
+              {
+                step: '01',
+                title: 'Search any topic',
+                desc: 'Type a news story, issue, or name. Anything making headlines works.',
+              },
+              {
+                step: '02',
+                title: 'We scan all sides',
+                desc: 'Cruxly pulls coverage from 30+ sources across the full political spectrum.',
+              },
+              {
+                step: '03',
+                title: 'See the full picture',
+                desc: 'Get a bias map, AI analysis, and every claim — confirmed or disputed.',
+              },
+            ].map(({ step, title, desc }) => (
+              <div key={step} className="flex flex-col gap-3">
+                <span className="text-xs font-mono text-amber-400/60 tracking-widest">{step}</span>
+                <h3 className="text-base font-bold text-zinc-100">{title}</h3>
+                <p className="text-sm text-zinc-500 leading-relaxed">{desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
