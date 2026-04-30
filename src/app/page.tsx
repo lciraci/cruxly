@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import TrendingCard from '@/components/TrendingCard';
+import HowItWorks from '@/components/HowItWorks';
 
 interface LocalArticle {
   title: string;
@@ -412,38 +413,7 @@ export default function Home() {
       </div>
 
       {/* ── How It Works ─────────────────────────────────────────────── */}
-      <div className="border-t border-white/[0.06]">
-        <div className="container mx-auto px-4 py-14 sm:py-16">
-          <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase mb-10">
-            How it works
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 max-w-3xl">
-            {[
-              {
-                step: '01',
-                title: 'Search any topic',
-                desc: 'Type a news story, issue, or name. Anything making headlines works.',
-              },
-              {
-                step: '02',
-                title: 'We scan all sides',
-                desc: 'Cruxly pulls coverage from 30+ sources across the full political spectrum.',
-              },
-              {
-                step: '03',
-                title: 'See the full picture',
-                desc: 'Get a bias map, AI analysis, and every claim — confirmed or disputed.',
-              },
-            ].map(({ step, title, desc }) => (
-              <div key={step} className="flex flex-col gap-3">
-                <span className="text-xs font-mono text-amber-400/60 tracking-widest">{step}</span>
-                <h3 className="text-base font-bold text-zinc-100">{title}</h3>
-                <p className="text-sm text-zinc-500 leading-relaxed">{desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <HowItWorks />
 
       {/* ── Waitlist ─────────────────────────────────────────────────── */}
       <div className="border-t border-white/[0.06]">
