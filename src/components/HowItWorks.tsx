@@ -17,28 +17,28 @@ export default function HowItWorks({ steps }: HowItWorksProps) {
       title: 'Discover',
       desc: 'Set your location for local news, or browse what\'s trending right now across different topics.',
       icon: '📍',
-      image: '/images/how-it-works/discover.png',
+      image: 'https://res.cloudinary.com/dey5q418s/image/upload/v1777507962/Icon_1_Discover_e105he.png',
     },
     {
       step: '02',
       title: 'Search All Sides',
       desc: 'Search any topic. Cruxly scans 30+ outlets across the full political spectrum—left, center, and right.',
       icon: '🔍',
-      image: '/images/how-it-works/search.png',
+      image: 'https://res.cloudinary.com/dey5q418s/image/upload/v1777507963/Icon_2_Search_All_Sides_b2wkq9.png',
     },
     {
       step: '03',
       title: 'See the Spectrum',
       desc: 'Instantly see which outlets are covering it and from what angle. Understand the full spread of coverage at a glance.',
       icon: '📊',
-      image: '/images/how-it-works/spectrum.png',
+      image: 'https://res.cloudinary.com/dey5q418s/image/upload/v1777507963/Icon_3_See_the_Spectrum_pojpw6.png',
     },
     {
       step: '04',
       title: 'Understand the Facts',
       desc: 'Get AI analysis: what all sides agree on, what\'s disputed, and how the story is changing. See the full picture.',
       icon: '🧠',
-      image: '/images/how-it-works/facts.png',
+      image: 'https://res.cloudinary.com/dey5q418s/image/upload/v1777507963/Icon_4_Understand_the_Facts_yzhpno.png',
     },
   ];
 
