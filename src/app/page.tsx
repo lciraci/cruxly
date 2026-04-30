@@ -1,8 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import TrendingCard from '@/components/TrendingCard';
 import HowItWorks from '@/components/HowItWorks';
 
 interface LocalArticle {
@@ -13,14 +12,6 @@ interface LocalArticle {
   description: string | null;
 }
 
-const FALLBACK_TOPICS = [
-  { topic: 'Trump tariffs China', category: 'Economy' },
-  { topic: 'AI regulation technology', category: 'Tech' },
-  { topic: 'Ukraine war NATO', category: 'Geopolitics' },
-  { topic: 'Climate change policy', category: 'Environment' },
-  { topic: 'Global inflation economy', category: 'Finance' },
-];
-
 const POPULAR_SEARCHES = [
   'Trump tariffs',
   'Gaza ceasefire',
@@ -30,15 +21,11 @@ const POPULAR_SEARCHES = [
   'Climate summit',
 ];
 
-const CATEGORIES = [
+const TOP_CATEGORIES = [
   { label: 'Politics', query: 'US politics Congress' },
   { label: 'Economy', query: 'global economy markets' },
   { label: 'Technology', query: 'technology AI innovation' },
   { label: 'World', query: 'international world news' },
-  { label: 'Environment', query: 'climate environment' },
-  { label: 'Health', query: 'health medicine' },
-  { label: 'Science', query: 'science research discovery' },
-  { label: 'Culture', query: 'culture society arts' },
 ];
 
 export default function Home() {
@@ -47,75 +34,18 @@ export default function Home() {
   const [location, setLocation] = useState('');
   const [locationEditing, setLocationEditing] = useState(false);
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'denied' | 'error'>('idle');
-  const [localNews, setLocalNews] = useState<LocalArticle[]>([]);
-  const [localNewsLoading, setLocalNewsLoading] = useState(false);
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [trendingTopics, setTrendingTopics] = useState(FALLBACK_TOPICS);
-  const [trendingLoading, setTrendingLoading] = useState(false);
-  const [trendingSourceCounts, setTrendingSourceCounts] = useState<Record<string, number>>({});
   const router = useRouter();
-
-  const fetchLocalNews = useCallback(async (loc: string) => {
-    if (!loc) return;
-    setLocalNewsLoading(true);
-    try {
-      const res = await fetch(`/api/news/local?location=${encodeURIComponent(loc)}`);
-      if (res.ok) {
-        const data = await res.json();
-        setLocalNews(data.articles || []);
-      }
-    } catch {
-      // local news is optional
-    } finally {
-      setLocalNewsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('cruxly-location');
-    if (saved) { setLocation(saved); fetchLocalNews(saved); }
-  }, [fetchLocalNews]);
-
-  useEffect(() => {
-    fetch('/api/news/trending')
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data?.trending?.length) {
-          setTrendingTopics(data.trending);
-          // Fetch source counts for each trending topic
-          data.trending.forEach((topic: any, index: number) => {
-            if (index < 4) { // Only fetch for first 4 to save API quota
-              fetch(`/api/news/search?q=${encodeURIComponent(topic.topic)}&pageSize=12`)
-                .then(r => r.ok ? r.json() : null)
-                .then(data => {
-                  if (data?.articles) {
-                    setTrendingSourceCounts(prev => ({
-                      ...prev,
-                      [topic.topic]: data.diversity?.uniqueSources || data.articles.length,
-                    }));
-                  }
-                })
-                .catch(() => {/* keep fallback */});
-            }
-          });
-        }
-      })
-      .catch(() => {/* keep fallback */})
-      .finally(() => setTrendingLoading(false));
-  }, []);
-
-  const locationRef = useRef(location);
-  useEffect(() => { locationRef.current = location; }, [location]);
-  useEffect(() => {
-    if (!location) return;
-    const id = setInterval(() => fetchLocalNews(locationRef.current), 5 * 60 * 1000);
-    return () => clearInterval(id);
-  }, [location, fetchLocalNews]);
 
   const saveLocation = (value: string) => {
     setLocation(value);
     localStorage.setItem('cruxly-location', value);
   };
+
+  useEffect(() => {
+    const saved = localStorage.getItem('cruxly-location');
+    if (saved) setLocation(saved);
+  }, []);
 
   const detectLocation = () => {
     if (!navigator.geolocation) { setGeoStatus('error'); return; }
@@ -135,7 +65,6 @@ export default function Home() {
           const country = addr.country_code?.toUpperCase() || '';
           const locationName = [city, state, country].filter(Boolean).join(', ');
           saveLocation(locationName);
-          fetchLocalNews(locationName);
           setGeoStatus('idle');
         } catch { setGeoStatus('error'); }
       },
@@ -167,30 +96,36 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#0d1117]">
 
-      {/* ── Split Hero ───────────────────────────────────────────────── */}
-      <div className="container mx-auto px-4 pt-16 sm:pt-24 pb-16">
-        <div className="flex flex-col lg:flex-row lg:gap-0">
-
-          {/* Left: Brand + Search */}
-          <div className="flex-1 lg:pr-16 lg:border-r lg:border-white/[0.06] pb-12 lg:pb-0">
-            {/* Wordmark */}
-            <div className="mb-8 sm:mb-10">
-              <span className="text-6xl sm:text-8xl md:text-9xl font-black tracking-widest text-zinc-100 uppercase leading-none select-none">
-                CRUXLY<span className="text-amber-400">.</span>
-              </span>
-              <div className="mt-3 h-px w-24 bg-amber-400/40" />
+      {/* ══════════════════════════════════════════════════════════════
+          SECTION 1: HERO - Search & Value Prop
+          ══════════════════════════════════════════════════════════════ */}
+      <div className="border-b border-white/[0.06]">
+        <div className="container mx-auto px-4 py-16 sm:py-24">
+          {/* Logo */}
+          <div className="text-center mb-10">
+            <h1 className="text-5xl sm:text-6xl font-black tracking-widest text-zinc-100 uppercase mb-2">
+              CRUXLY<span className="text-amber-400">.</span>
+            </h1>
+            <div className="flex justify-center">
+              <div className="h-px w-16 bg-amber-400/40" />
             </div>
+          </div>
 
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight leading-snug mb-4 text-zinc-200">
-              Stop reading one side of the story.
+          {/* Headline & Subheading */}
+          <div className="text-center mb-12 max-w-3xl mx-auto">
+            <h2 className="text-3xl sm:text-4xl font-bold text-zinc-100 mb-4">
+              See Every Side of the Story
             </h2>
-            <p className="text-base sm:text-lg text-zinc-500 max-w-md leading-relaxed mb-10">
-              Type any topic, get every major outlet&apos;s take — where they agree,
-              where they spin, and what none of them want you to notice.
+            <p className="text-lg text-zinc-400">
+              Search any topic and instantly compare how 30+ outlets across the political spectrum cover it—
+              <span className="text-zinc-300 font-semibold"> left, center, and right</span>.
             </p>
+          </div>
 
-            {/* Search */}
-            <form onSubmit={handleSearch} className="relative max-w-lg">
+          {/* Search & Location */}
+          <div className="flex flex-col items-center gap-6 max-w-2xl mx-auto">
+            {/* Search Bar */}
+            <form onSubmit={handleSearch} className="w-full relative">
               <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -209,9 +144,9 @@ export default function Home() {
               </button>
             </form>
 
-            {/* Popular searches */}
-            <div className="mt-4 flex flex-wrap gap-2 max-w-lg">
-              <span className="text-xs text-zinc-600 self-center mr-1 shrink-0">Others search:</span>
+            {/* Popular Searches */}
+            <div className="flex flex-wrap justify-center gap-2">
+              <span className="text-xs text-zinc-600 self-center shrink-0">Others search:</span>
               {POPULAR_SEARCHES.map((q) => (
                 <button
                   key={q}
@@ -223,19 +158,19 @@ export default function Home() {
               ))}
             </div>
 
-            {/* Location */}
-            <div className="mt-5">
+            {/* Location Selector */}
+            <div className="w-full flex justify-center">
               {locationEditing ? (
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
                     const input = (e.target as HTMLFormElement).elements.namedItem('loc') as HTMLInputElement;
                     const val = input.value.trim();
-                    if (val) { saveLocation(val); fetchLocalNews(val); setLocationEditing(false); }
+                    if (val) { saveLocation(val); setLocationEditing(false); }
                   }}
-                  className="flex items-center gap-2 max-w-lg"
+                  className="flex items-center gap-2"
                 >
-                  <div className="relative flex-1">
+                  <div className="relative">
                     <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -246,155 +181,99 @@ export default function Home() {
                       defaultValue={location}
                       placeholder="City, state — e.g. Charlotte, NC"
                       autoFocus
-                      className="w-full pl-9 pr-3 py-2.5 text-sm rounded-lg border border-white/[0.1] bg-white/[0.04] text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20 transition-all"
+                      className="pl-9 pr-3 py-2 text-sm rounded-lg border border-white/[0.1] bg-white/[0.04] text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-amber-400/40 focus:ring-1 focus:ring-amber-400/20 transition-all"
                     />
                   </div>
-                  <button type="submit" className="px-4 py-2.5 text-sm bg-amber-400 hover:bg-amber-300 text-zinc-900 rounded-lg font-semibold transition-colors shrink-0">Save</button>
-                  <button type="button" onClick={() => setLocationEditing(false)} className="px-3 py-2.5 text-sm text-zinc-500 hover:text-zinc-300 rounded-lg border border-white/[0.06] hover:border-white/[0.12] transition-all shrink-0">Cancel</button>
+                  <button type="submit" className="px-4 py-2 text-sm bg-amber-400 hover:bg-amber-300 text-zinc-900 rounded-lg font-semibold transition-colors shrink-0">Save</button>
+                  <button type="button" onClick={() => setLocationEditing(false)} className="px-3 py-2 text-sm text-zinc-500 hover:text-zinc-300 rounded-lg border border-white/[0.06] transition-all shrink-0">Cancel</button>
                 </form>
               ) : location ? (
-                /* Active location chip */
                 <div className="inline-flex items-center gap-2 pl-3 pr-1.5 py-1.5 rounded-xl border border-amber-400/25 bg-amber-400/[0.07]">
                   <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   <span className="text-sm font-medium text-amber-200">{location}</span>
-                  <div className="flex items-center gap-0.5 ml-1">
-                    <button
-                      onClick={() => setLocationEditing(true)}
-                      className="p-1.5 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-white/[0.06] transition-all"
-                      aria-label="Edit location"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => { saveLocation(''); setLocalNews([]); }}
-                      className="p-1.5 rounded-lg text-zinc-500 hover:text-rose-400 hover:bg-rose-400/[0.08] transition-all"
-                      aria-label="Remove location"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setLocationEditing(true)}
+                    className="p-1 rounded text-zinc-500 hover:text-zinc-200 transition-colors"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => saveLocation('')}
+                    className="p-1 rounded text-zinc-500 hover:text-rose-400 transition-colors"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
               ) : (
-                /* No location — two clear actions */
-                <div className="flex flex-wrap items-center gap-3">
+                <div className="flex flex-wrap items-center gap-3 justify-center">
                   <button
                     onClick={detectLocation}
                     disabled={geoStatus === 'loading'}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-lg border border-white/[0.1] bg-white/[0.03] hover:bg-white/[0.06] hover:border-white/[0.16] text-zinc-300 disabled:opacity-50 transition-all text-sm font-medium"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg border border-white/[0.1] bg-white/[0.03] hover:bg-white/[0.06] text-zinc-300 disabled:opacity-50 transition-all text-sm font-medium"
                   >
                     <svg className="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    {geoStatus === 'loading' ? 'Detecting location…' : geoStatus === 'denied' ? 'Location access denied' : 'Add local news'}
+                    {geoStatus === 'loading' ? 'Detecting…' : 'Add local news'}
                   </button>
                   <button
                     onClick={() => setLocationEditing(true)}
-                    className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors underline underline-offset-2 decoration-zinc-700 hover:decoration-zinc-500"
+                    className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors underline underline-offset-2"
                   >
                     Enter city manually
                   </button>
                 </div>
               )}
             </div>
-
-            {/* Local News */}
-            {(localNewsLoading || localNews.length > 0) && (
-              <div className="mt-10">
-                <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase mb-4">
-                  Local — {location}
-                </p>
-                {localNewsLoading ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
-                    {[...Array(4)].map((_, i) => (
-                      <div key={i} className="animate-pulse h-20 rounded-lg bg-white/[0.03] border border-white/[0.05]" />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
-                    {localNews.map((article, idx) => (
-                      <a
-                        key={idx}
-                        href={article.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group flex flex-col p-4 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.05] hover:border-white/[0.1] transition-all"
-                      >
-                        <div className="flex items-center gap-2 mb-1.5">
-                          <span className="text-xs font-medium text-amber-400/80">{article.source.name}</span>
-                          {article.publishedAt && (
-                            <span className="text-xs text-zinc-600 ml-auto">
-                              {new Date(article.publishedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </span>
-                          )}
-                        </div>
-                        <h3 className="text-sm text-zinc-300 group-hover:text-zinc-100 line-clamp-2 leading-snug transition-colors">
-                          {article.title}
-                        </h3>
-                      </a>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
           </div>
-
-          {/* Right: Trending */}
-          <div className="lg:w-[42%] lg:pl-16 pt-2">
-            <div className="flex items-center justify-between mb-6">
-              <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase">
-                Trending now
-              </p>
-              <a href="/topics" className="text-xs text-amber-400 hover:text-amber-300 transition-colors">
-                View all →
-              </a>
-            </div>
-            <div className="space-y-3">
-              {trendingTopics.map((t, i) => {
-                const shortTitle = t.topic.length > 80
-                  ? t.topic.slice(0, 77).trimEnd() + '…'
-                  : t.topic;
-                const cleanTitle = shortTitle.replace(/\s[-–]\s[^-–]{2,30}$/, '');
-                // Extract key terms for search (named entities + long words, max 5)
-                const searchQuery = (() => {
-                  const words = cleanTitle.split(/\s+/).filter(w => w.replace(/[^\w]/g, '').length > 2);
-                  const key = words.filter(w => /^[A-Z]/.test(w) || w.length > 5);
-                  return (key.length >= 2 ? key : words).slice(0, 5).join(' ');
-                })();
-                const sourceCount = trendingSourceCounts[t.topic] || 12;
-                const trendingDirection = Math.random() > 0.5 ? 'up' : (Math.random() > 0.5 ? 'stable' : 'down');
-                return (
-                  <TrendingCard
-                    key={i}
-                    topic={cleanTitle}
-                    category={t.category}
-                    sourceCount={sourceCount}
-                    trendingDirection={trendingDirection as 'up' | 'stable' | 'down'}
-                    onClick={() => router.push(`/story?q=${encodeURIComponent(searchQuery)}`)}
-                  />
-                );
-              })}
-            </div>
-          </div>
-
         </div>
       </div>
 
-      {/* ── Category Grid ────────────────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════
+          SECTION 2: HOW IT WORKS - Explain Value
+          ══════════════════════════════════════════════════════════════ */}
+      <HowItWorks />
+
+      {/* ══════════════════════════════════════════════════════════════
+          SECTION 3: EXPLORE BY TOPIC - CTA
+          ══════════════════════════════════════════════════════════════ */}
+      <div className="border-t border-white/[0.06]">
+        <div className="container mx-auto px-4 py-14">
+          <div className="max-w-2xl">
+            <div className="bg-gradient-to-br from-amber-400/10 to-amber-400/5 rounded-2xl border border-amber-400/20 p-8 sm:p-10 hover:border-amber-400/40 transition-all">
+              <h3 className="text-2xl font-bold text-zinc-100 mb-3">Browse All Topics</h3>
+              <p className="text-zinc-400 mb-6">
+                Explore news organized by category. Discover how different outlets cover the same stories in Politics, Economy, Technology, and more.
+              </p>
+              <button
+                onClick={() => router.push('/topics')}
+                className="px-6 py-3 bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold rounded-lg transition-colors"
+              >
+                Explore Topics →
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ══════════════════════════════════════════════════════════════
+          SECTION 4: QUICK CATEGORIES - Top 4
+          ══════════════════════════════════════════════════════════════ */}
       <div className="border-t border-white/[0.06]">
         <div className="container mx-auto px-4 py-12 sm:py-14">
           <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase mb-6">
-            Browse by topic
+            Popular categories
           </p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            {CATEGORIES.map((cat) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {TOP_CATEGORIES.map((cat) => (
               <button
                 key={cat.label}
                 onClick={() => router.push(`/story?q=${encodeURIComponent(cat.query)}`)}
@@ -412,10 +291,9 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── How It Works ─────────────────────────────────────────────── */}
-      <HowItWorks />
-
-      {/* ── Waitlist ─────────────────────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════
+          SECTION 5: WAITLIST - Pro Features
+          ══════════════════════════════════════════════════════════════ */}
       <div className="border-t border-white/[0.06]">
         <div className="container mx-auto px-4 py-16 sm:py-20 max-w-2xl">
           <p className="text-xs font-semibold tracking-widest text-amber-400/70 uppercase mb-4">
@@ -433,7 +311,7 @@ export default function Home() {
               <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <span className="font-medium">You&apos;re on the list — we&apos;ll email you when Pro launches.</span>
+              <span className="font-medium">You're on the list — we'll email you when Pro launches.</span>
             </div>
           ) : (
             <form onSubmit={handleWaitlist} className="flex flex-col sm:flex-row gap-3 max-w-md">
@@ -460,7 +338,9 @@ export default function Home() {
         </div>
       </div>
 
-      {/* ── Footer ───────────────────────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════
+          FOOTER
+          ══════════════════════════════════════════════════════════════ */}
       <footer className="border-t border-white/[0.04] py-8">
         <div className="container mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <span className="text-zinc-600 font-bold text-sm">Cruxly<span className="text-amber-400">.</span></span>
