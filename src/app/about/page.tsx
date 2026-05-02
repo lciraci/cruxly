@@ -1,3 +1,5 @@
+import ContactForm from '@/components/ContactForm';
+
 export const metadata = {
   title: 'About — Cruxly',
   description: 'How Cruxly works and why we built it.',
@@ -122,12 +124,11 @@ export default function AboutPage() {
 
         <div className="h-px bg-white/[0.06] mb-10" />
 
-        <p className="text-sm text-zinc-500">
-          Questions?{' '}
-          <a href="mailto:hello@cruxly.com" className="text-amber-400 hover:text-amber-300 transition-colors">
-            hello@cruxly.com
-          </a>
-        </p>
+        <ContactForm
+          type="general"
+          title="Questions?"
+          description="Send us a message and we'll get back to you as soon as possible."
+        />
       </div>
     </div>
   );

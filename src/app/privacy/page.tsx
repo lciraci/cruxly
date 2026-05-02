@@ -1,3 +1,5 @@
+import ContactForm from '@/components/ContactForm';
+
 export const metadata = {
   title: 'Privacy Policy — Cruxly',
   description: 'How Cruxly handles your data.',
@@ -116,12 +118,11 @@ export default function PrivacyPage() {
 
         <div className="h-px bg-white/[0.06] mt-14 mb-10" />
 
-        <p className="text-sm text-zinc-500">
-          Privacy questions?{' '}
-          <a href="mailto:privacy@cruxly.com" className="text-amber-400 hover:text-amber-300 transition-colors">
-            privacy@cruxly.com
-          </a>
-        </p>
+        <ContactForm
+          type="privacy"
+          title="Privacy questions?"
+          description="Send us a message regarding our privacy policy or your personal data."
+        />
 
       </div>
     </div>

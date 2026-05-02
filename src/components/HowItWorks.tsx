@@ -1,91 +1,70 @@
+import { MapPin, Search, BarChart2, BrainCircuit, LucideIcon } from 'lucide-react';
+
 interface HowItWorksStep {
   step: string;
   title: string;
   desc: string;
-  icon: string;
-  image?: string; // Optional: ChatGPT-generated image path
+  Icon: LucideIcon;
 }
 
-interface HowItWorksProps {
-  steps?: HowItWorksStep[];
-}
+const defaultSteps: HowItWorksStep[] = [
+  {
+    step: '01',
+    title: 'Discover',
+    desc: "Set your location for local news, or browse what's trending right now across different topics.",
+    Icon: MapPin,
+  },
+  {
+    step: '02',
+    title: 'Search All Sides',
+    desc: 'Search any topic. Cruxly scans 30+ outlets across the full political spectrum—left, center, and right.',
+    Icon: Search,
+  },
+  {
+    step: '03',
+    title: 'See the Spectrum',
+    desc: 'Instantly see which outlets cover it and from what angle. Understand the full spread at a glance.',
+    Icon: BarChart2,
+  },
+  {
+    step: '04',
+    title: 'Understand the Facts',
+    desc: "Get AI analysis: what all sides agree on, what's disputed, and how the story is changing.",
+    Icon: BrainCircuit,
+  },
+];
 
-export default function HowItWorks({ steps }: HowItWorksProps) {
-  const defaultSteps: HowItWorksStep[] = [
-    {
-      step: '01',
-      title: 'Discover',
-      desc: 'Set your location for local news, or browse what\'s trending right now across different topics.',
-      icon: '📍',
-      image: 'https://res.cloudinary.com/dey5q418s/image/upload/v1777507962/Icon_1_Discover_e105he.png',
-    },
-    {
-      step: '02',
-      title: 'Search All Sides',
-      desc: 'Search any topic. Cruxly scans 30+ outlets across the full political spectrum—left, center, and right.',
-      icon: '🔍',
-      image: 'https://res.cloudinary.com/dey5q418s/image/upload/v1777507963/Icon_2_Search_All_Sides_b2wkq9.png',
-    },
-    {
-      step: '03',
-      title: 'See the Spectrum',
-      desc: 'Instantly see which outlets are covering it and from what angle. Understand the full spread of coverage at a glance.',
-      icon: '📊',
-      image: 'https://res.cloudinary.com/dey5q418s/image/upload/v1777507963/Icon_3_See_the_Spectrum_pojpw6.png',
-    },
-    {
-      step: '04',
-      title: 'Understand the Facts',
-      desc: 'Get AI analysis: what all sides agree on, what\'s disputed, and how the story is changing. See the full picture.',
-      icon: '🧠',
-      image: 'https://res.cloudinary.com/dey5q418s/image/upload/v1777507963/Icon_4_Understand_the_Facts_yzhpno.png',
-    },
-  ];
-
-  const displaySteps = steps || defaultSteps;
-
+export default function HowItWorks() {
   return (
     <div className="border-t border-white/[0.06]">
-      <div className="container mx-auto px-4 py-14 sm:py-16">
-        <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase mb-10">
-          How it works
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
-          {displaySteps.map(({ step, title, desc, icon, image }) => (
-            <div key={step} className="group">
-              {/* Icon/Image Placeholder */}
-              <div className="mb-6 h-24 bg-gradient-to-br from-amber-400/10 to-amber-400/5 rounded-xl border border-amber-400/20 flex items-center justify-center overflow-hidden relative group-hover:border-amber-400/40 transition-all">
-                {image ? (
-                  <img
-                    src={image}
-                    alt={title}
-                    className="w-16 h-16 object-contain opacity-90 group-hover:opacity-100 transition-opacity"
-                    onError={(e) => {
-                      // Fallback to emoji if image fails to load
-                      e.currentTarget.style.display = 'none';
-                      const parent = e.currentTarget.parentElement;
-                      if (parent) {
-                        const fallback = document.createElement('span');
-                        fallback.className = 'text-6xl opacity-80 group-hover:opacity-100 transition-opacity';
-                        fallback.textContent = icon;
-                        parent.appendChild(fallback);
-                      }
-                    }}
-                  />
-                ) : (
-                  <span className="text-6xl opacity-80 group-hover:opacity-100 transition-opacity">
-                    {icon}
-                  </span>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+      <div className="container mx-auto px-4 py-24">
+        {/* Header */}
+        <div className="text-center mb-20">
+          <p className="text-xs font-semibold tracking-widest text-amber-400/60 uppercase mb-3">
+            How it works
+          </p>
+          <h2 className="text-2xl font-bold text-zinc-100">Four steps to the full picture</h2>
+        </div>
+
+        {/* Steps */}
+        <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 max-w-5xl mx-auto">
+          {/* Connecting line — desktop only */}
+          <div className="hidden lg:block absolute top-6 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-transparent via-amber-400/20 to-transparent" />
+
+          {defaultSteps.map(({ step, title, desc, Icon }) => (
+            <div key={step} className="group flex flex-col items-center text-center">
+              {/* Icon circle */}
+              <div className="relative z-10 mb-6 w-12 h-12 rounded-full border border-amber-400/30 bg-zinc-900 flex items-center justify-center group-hover:border-amber-400/70 group-hover:bg-amber-400/5 transition-all duration-300">
+                <Icon size={20} className="text-amber-400/70 group-hover:text-amber-400 transition-colors duration-300" />
               </div>
 
-              {/* Step Info */}
-              <div className="flex flex-col gap-2">
-                <span className="text-xs font-mono text-amber-400/60 tracking-widest">{step}</span>
-                <h3 className="text-lg font-bold text-zinc-100">{title}</h3>
-                <p className="text-sm text-zinc-400 leading-relaxed">{desc}</p>
-              </div>
+              {/* Large decorative number */}
+              <span className="text-[4rem] font-black leading-none text-zinc-800 group-hover:text-zinc-700 transition-colors duration-300 mb-3 select-none">
+                {step}
+              </span>
+
+              <h3 className="text-base font-bold text-zinc-100 mb-2">{title}</h3>
+              <p className="text-sm text-zinc-400 leading-relaxed">{desc}</p>
             </div>
           ))}
         </div>

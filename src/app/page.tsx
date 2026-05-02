@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { Landmark, TrendingUp, Cpu, Globe, ArrowRight } from 'lucide-react';
 import HowItWorks from '@/components/HowItWorks';
+import SpectrumBar from '@/components/SpectrumBar';
 
 interface LocalArticle {
   title: string;
@@ -22,10 +24,10 @@ const POPULAR_SEARCHES = [
 ];
 
 const TOP_CATEGORIES = [
-  { label: 'Politics', query: 'US politics Congress' },
-  { label: 'Economy', query: 'global economy markets' },
-  { label: 'Technology', query: 'technology AI innovation' },
-  { label: 'World', query: 'international world news' },
+  { label: 'Politics', query: 'US politics Congress', Icon: Landmark, desc: 'Congress, elections, and policy across the spectrum.' },
+  { label: 'Economy', query: 'global economy markets', Icon: TrendingUp, desc: 'Markets, trade, inflation, and economic trends.' },
+  { label: 'Technology', query: 'technology AI innovation', Icon: Cpu, desc: 'AI, big tech, innovation, and digital policy.' },
+  { label: 'World', query: 'international world news', Icon: Globe, desc: 'International affairs, conflicts, and diplomacy.' },
 ];
 
 export default function Home() {
@@ -243,50 +245,65 @@ export default function Home() {
       <HowItWorks />
 
       {/* ══════════════════════════════════════════════════════════════
-          SECTION 3: EXPLORE BY TOPIC - CTA
+          SECTION 3: SPECTRUM BAR
           ══════════════════════════════════════════════════════════════ */}
       <div className="border-t border-white/[0.06]">
-        <div className="container mx-auto px-4 py-14">
-          <div className="max-w-2xl">
-            <div className="bg-gradient-to-br from-amber-400/10 to-amber-400/5 rounded-2xl border border-amber-400/20 p-8 sm:p-10 hover:border-amber-400/40 transition-all">
-              <h3 className="text-2xl font-bold text-zinc-100 mb-3">Browse All Topics</h3>
-              <p className="text-zinc-400 mb-6">
-                Explore news organized by category. Discover how different outlets cover the same stories in Politics, Economy, Technology, and more.
-              </p>
-              <button
-                onClick={() => router.push('/topics')}
-                className="px-6 py-3 bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold rounded-lg transition-colors"
-              >
-                Explore Topics →
-              </button>
-            </div>
+        <div className="container mx-auto px-4 py-20">
+          <div className="text-center mb-12">
+            <p className="text-xs font-semibold tracking-widest text-amber-400/60 uppercase mb-3">
+              30+ sources
+            </p>
+            <h2 className="text-2xl font-bold text-zinc-100 mb-2">See through media bias</h2>
+            <p className="text-sm text-zinc-400">Compare trusted sources across the political spectrum.</p>
           </div>
+          <SpectrumBar />
         </div>
       </div>
 
       {/* ══════════════════════════════════════════════════════════════
-          SECTION 4: QUICK CATEGORIES - Top 4
+          SECTION 4: EXPLORE BY TOPIC
           ══════════════════════════════════════════════════════════════ */}
       <div className="border-t border-white/[0.06]">
-        <div className="container mx-auto px-4 py-12 sm:py-14">
-          <p className="text-xs font-semibold tracking-widest text-zinc-500 uppercase mb-6">
-            Popular categories
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {TOP_CATEGORIES.map((cat) => (
+        <div className="container mx-auto px-4 py-20">
+          {/* Header */}
+          <div className="mb-10">
+            <p className="text-xs font-semibold tracking-widest text-amber-400/60 uppercase mb-3">
+              Explore
+            </p>
+            <h2 className="text-2xl font-bold text-zinc-100">Browse by topic</h2>
+          </div>
+
+          {/* Category cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+            {TOP_CATEGORIES.map(({ label, query, Icon, desc }) => (
               <button
-                key={cat.label}
-                onClick={() => router.push(`/story?q=${encodeURIComponent(cat.query)}`)}
-                className="group flex items-center justify-between px-5 py-4 rounded-xl border border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.05] hover:border-amber-400/25 transition-all text-left"
+                key={label}
+                onClick={() => router.push(`/story?q=${encodeURIComponent(query)}`)}
+                className="group flex flex-col gap-5 p-6 rounded-2xl border border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.04] hover:border-amber-400/25 transition-all text-left"
               >
-                <span className="text-sm font-semibold text-zinc-300 group-hover:text-zinc-100 transition-colors">
-                  {cat.label}
-                </span>
-                <svg className="w-4 h-4 text-zinc-700 group-hover:text-amber-400 transition-colors shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center group-hover:bg-amber-400/15 group-hover:border-amber-400/40 transition-all">
+                  <Icon size={18} className="text-amber-400/70 group-hover:text-amber-400 transition-colors" />
+                </div>
+                <div>
+                  <p className="font-bold text-zinc-100 mb-1.5">{label}</p>
+                  <p className="text-xs text-zinc-500 leading-relaxed">{desc}</p>
+                </div>
+                <div className="flex items-center gap-1 text-xs text-zinc-600 group-hover:text-amber-400 transition-colors">
+                  Explore <ArrowRight size={12} />
+                </div>
               </button>
             ))}
+          </div>
+
+          {/* Browse all CTA */}
+          <div className="flex justify-center">
+            <button
+              onClick={() => router.push('/topics')}
+              className="group flex items-center gap-2 px-6 py-3 rounded-xl border border-white/[0.10] bg-white/[0.03] hover:border-amber-400/40 hover:bg-amber-400/5 text-sm font-semibold text-zinc-300 hover:text-amber-400 transition-all duration-200"
+            >
+              Browse all topics
+              <ArrowRight size={15} className="group-hover:translate-x-0.5 transition-transform duration-200" />
+            </button>
           </div>
         </div>
       </div>
