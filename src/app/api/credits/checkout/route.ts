@@ -20,7 +20,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
     }
 
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      httpClient: Stripe.createFetchHttpClient(),
+      maxNetworkRetries: 0,
+    });
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://cruxly-woad.vercel.app';
 
     const session = await stripe.checkout.sessions.create({
@@ -44,8 +47,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ url: session.url });
   } catch (err) {
     console.error('Checkout error:', err);
+    const stripeErr = err as { type?: string; code?: string; statusCode?: number; message?: string };
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Checkout failed' },
+      {
+        error: stripeErr.message ?? 'Checkout failed',
+        stripeType: stripeErr.type,
+        stripeCode: stripeErr.code,
+        stripeStatus: stripeErr.statusCode,
+      },
       { status: 500 }
     );
   }
