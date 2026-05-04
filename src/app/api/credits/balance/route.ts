@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseClient } from '@/lib/supabase';
+import { getSupabaseAuthClient, getSupabaseClient } from '@/lib/supabase';
 
 async function getUserFromRequest(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '');
   if (!token) return null;
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseAuthClient();
   if (!supabase) return null;
   const { data: { user } } = await supabase.auth.getUser(token);
   return user;

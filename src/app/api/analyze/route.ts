@@ -11,8 +11,9 @@ const anthropic = new Anthropic({
 async function getUserFromRequest(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '');
   if (!token) return null;
-  const { createClient } = await import('@supabase/supabase-js');
-  const supabase = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+  const { getSupabaseAuthClient } = await import('@/lib/supabase');
+  const supabase = getSupabaseAuthClient();
+  if (!supabase) return null;
   const { data: { user } } = await supabase.auth.getUser(token);
   return user;
 }
