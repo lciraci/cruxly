@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { getSupabaseClient } from '@/lib/supabase';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 async function getUserFromRequest(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '');
   if (!token) return null;
@@ -17,6 +15,11 @@ export async function POST(req: NextRequest) {
   const user = await getUserFromRequest(req);
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  if (!process.env.STRIPE_SECRET_KEY) {
+    return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
+  }
+
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://cruxly-woad.vercel.app';
 
   const session = await stripe.checkout.sessions.create({
