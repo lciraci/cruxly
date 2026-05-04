@@ -20,18 +20,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
     }
 
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      httpClient: Stripe.createFetchHttpClient(),
-      maxNetworkRetries: 0,
-    });
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const appUrl = 'https://cruxly-woad.vercel.app';
 
-    // Derive base URL from the incoming request so it's always correct regardless of env vars
-    const reqOrigin = new URL(req.url).origin;
-    const appUrl = reqOrigin.includes('localhost')
-      ? (process.env.NEXT_PUBLIC_APP_URL || 'https://cruxly-woad.vercel.app')
-      : reqOrigin;
-
-    console.log('Checkout: appUrl =', appUrl, '| key prefix =', process.env.STRIPE_SECRET_KEY?.slice(0, 12));
+    console.log('Checkout: key prefix =', process.env.STRIPE_SECRET_KEY?.slice(0, 12));
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
