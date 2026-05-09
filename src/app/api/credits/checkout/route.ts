@@ -20,7 +20,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Stripe not configured' }, { status: 503 });
     }
 
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      httpClient: Stripe.createFetchHttpClient(),
+    });
     const appUrl = 'https://cruxly-woad.vercel.app';
 
     console.log('Checkout: key prefix =', process.env.STRIPE_SECRET_KEY?.slice(0, 12));
