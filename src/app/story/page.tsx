@@ -292,28 +292,35 @@ function StoryContent() {
 
   const getBiasBorderColor = (bias?: string) => {
     switch (bias) {
-      case 'left': return 'border-l-blue-500';
-      case 'center-left': return 'border-l-blue-400';
-      case 'center': return 'border-l-zinc-500';
-      case 'center-right': return 'border-l-rose-400';
-      case 'right': return 'border-l-rose-500';
-      default: return 'border-l-zinc-700';
+      case 'left':         return 'border-l-blue-700';
+      case 'center-left':  return 'border-l-sky-400';
+      case 'center':       return 'border-l-zinc-400';
+      case 'center-right': return 'border-l-orange-400';
+      case 'right':        return 'border-l-red-600';
+      default:             return 'border-l-zinc-700';
     }
   };
 
   const getBiasDotColor = (bias?: string) => {
     switch (bias) {
-      case 'left': return 'bg-blue-500';
-      case 'center-left': return 'bg-blue-400';
-      case 'center': return 'bg-zinc-500';
-      case 'center-right': return 'bg-rose-400';
-      case 'right': return 'bg-rose-500';
-      default: return 'bg-zinc-700';
+      case 'left':         return 'bg-blue-700';
+      case 'center-left':  return 'bg-sky-400';
+      case 'center':       return 'bg-zinc-400';
+      case 'center-right': return 'bg-orange-400';
+      case 'right':        return 'bg-red-600';
+      default:             return 'bg-zinc-700';
     }
   };
 
-  const getBiasLabel = (bias?: string) =>
-    bias?.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('-') || 'Unknown';
+  const BIAS_ORDER = ['left', 'center-left', 'center', 'center-right', 'right'] as const;
+
+  const getBiasLabel = (bias?: string) => {
+    const labels: Record<string, string> = {
+      'left': 'Left', 'center-left': 'Center-Left',
+      'center': 'Center', 'center-right': 'Center-Right', 'right': 'Right',
+    };
+    return bias ? (labels[bias] ?? bias) : 'Unknown';
+  };
 
   const hasSpectrum =
     articles.length >= 4 &&
@@ -406,29 +413,34 @@ function StoryContent() {
           {/* Bias spectrum bar — only shown when enough sources for a real comparison */}
           {diversity && hasSpectrum && (
             <div className="bg-white/[0.03] rounded-lg p-3 sm:p-4 border border-white/[0.06]">
-              <p className="text-xs text-zinc-600 uppercase tracking-widest font-semibold mb-2">Political spectrum</p>
-              <div className="flex gap-0.5 h-2 rounded-full overflow-hidden mb-2">
-                {diversity.biasDistribution['left'] && (
-                  <div className="bg-blue-600 rounded-l-full" style={{ flex: diversity.biasDistribution['left'] }} />
-                )}
-                {diversity.biasDistribution['center-left'] && (
-                  <div className="bg-blue-400" style={{ flex: diversity.biasDistribution['center-left'] }} />
-                )}
-                {diversity.biasDistribution['center'] && (
-                  <div className="bg-zinc-500" style={{ flex: diversity.biasDistribution['center'] }} />
-                )}
-                {diversity.biasDistribution['center-right'] && (
-                  <div className="bg-rose-400" style={{ flex: diversity.biasDistribution['center-right'] }} />
-                )}
-                {diversity.biasDistribution['right'] && (
-                  <div className="bg-rose-600 rounded-r-full" style={{ flex: diversity.biasDistribution['right'] }} />
-                )}
+              <p className="text-xs text-zinc-600 uppercase tracking-widest font-semibold mb-3">Political spectrum</p>
+              <div className="flex h-3 rounded-full overflow-hidden mb-3">
+                {BIAS_ORDER.map((bias, i) => {
+                  const count = diversity.biasDistribution[bias];
+                  if (!count) return null;
+                  const bgColors: Record<string, string> = {
+                    'left': 'bg-blue-700',
+                    'center-left': 'bg-sky-400',
+                    'center': 'bg-zinc-400',
+                    'center-right': 'bg-orange-400',
+                    'right': 'bg-red-600',
+                  };
+                  const isFirst = BIAS_ORDER.slice(0, i).every(b => !diversity.biasDistribution[b]);
+                  const isLast  = BIAS_ORDER.slice(i + 1).every(b => !diversity.biasDistribution[b]);
+                  return (
+                    <div
+                      key={bias}
+                      className={`${bgColors[bias]} ${isFirst ? 'rounded-l-full' : ''} ${isLast ? 'rounded-r-full' : ''}`}
+                      style={{ flex: count }}
+                    />
+                  );
+                })}
               </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-zinc-500">
-                {Object.entries(diversity.biasDistribution).map(([bias, count]) => (
+              <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-xs text-zinc-500">
+                {BIAS_ORDER.filter(b => diversity.biasDistribution[b]).map(bias => (
                   <span key={bias} className="flex items-center gap-1.5">
-                    <span className={`w-2 h-2 rounded-full ${getBiasDotColor(bias)}`} />
-                    {getBiasLabel(bias)}: {count}
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${getBiasDotColor(bias)}`} />
+                    {getBiasLabel(bias)}: {diversity.biasDistribution[bias]}
                   </span>
                 ))}
               </div>
