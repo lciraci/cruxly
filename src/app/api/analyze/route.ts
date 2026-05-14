@@ -25,22 +25,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Login required to use Cruxly Analysis.' }, { status: 401 });
   }
 
-  // Credit check
-  const { getSupabaseClient } = await import('@/lib/supabase');
-  const supabase = getSupabaseClient();
-  if (!supabase) return NextResponse.json({ error: 'DB unavailable' }, { status: 503 });
-
-  const { data: creditRow } = await supabase
-    .from('user_credits')
-    .select('credits')
-    .eq('user_id', user.id)
-    .single();
-
-  const credits = creditRow?.credits ?? 0;
-  if (credits < 1) {
-    return NextResponse.json({ error: 'No credits remaining. Purchase more to continue.' }, { status: 402 });
-  }
-
   try {
     const { articles, topic } = await request.json() as {
       articles: EnrichedArticle[];
@@ -208,12 +192,6 @@ ${JSON.stringify(articleSummaries, null, 2)}`;
       drift,
       snapshotCount: existingSnapshots.length + 1,
     };
-
-    // Deduct 1 credit after successful analysis
-    await supabase
-      .from('user_credits')
-      .update({ credits: credits - 1, updated_at: new Date().toISOString() })
-      .eq('user_id', user.id);
 
     return NextResponse.json(analysis);
 
