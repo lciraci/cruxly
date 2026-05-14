@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import RSSParser from 'rss-parser';
+import Anthropic from '@anthropic-ai/sdk';
 import { NEWS_SOURCES, getSourceById } from '@/config/sources';
 import { RSS_FEEDS } from '@/config/rss-feeds';
 import { Article, EnrichedArticle, NewsAPIResponse } from '@/types/news';
@@ -9,6 +10,7 @@ import type { BiasLeaning } from '@/config/sources';
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const NEWS_API_BASE_URL = 'https://newsapi.org/v2';
 const rssParser = new RSSParser();
+const anthropic = new Anthropic();
 
 // Common stop words to ignore in relevance scoring
 const STOP_WORDS = new Set([
@@ -255,6 +257,34 @@ async function fetchNewsAPIArticles(
 }
 
 // ---------------------------------------------------------------------------
+// AI Query Expansion — called only when initial coverage is low
+// Uses Claude Haiku to generate alternative phrasings for the query
+// ---------------------------------------------------------------------------
+async function expandQuery(query: string): Promise<string[]> {
+  try {
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 120,
+      system: [
+        {
+          type: 'text',
+          text: 'You are a news search assistant. When given a search query, return 3 alternative search phrases using different but related terminology that would find similar news articles. Return ONLY a JSON array of strings with no explanation or markdown.',
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
+      messages: [{ role: 'user', content: `Query: "${query}"` }],
+    });
+
+    const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+    const parsed = JSON.parse(text);
+    if (Array.isArray(parsed)) return parsed.slice(0, 3).filter((s): s is string => typeof s === 'string');
+    return [];
+  } catch {
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
 // DIVERSITY ENGINE — the core of Cruxly's value
 //
 // Rules:
@@ -268,15 +298,16 @@ function enforceDiversity(
   articles: EnrichedArticle[],
   query: string,
   limit: number,
-  queryEntities: string[] = []
+  queryEntities: string[] = [],
+  threshold = 0.5
 ): { articles: EnrichedArticle[]; lowCoverage: boolean; clusters: Map<string, EnrichedArticle[]> } {
-  // Step 1: Score relevance + recency, filter out junk (< 50% match)
+  // Step 1: Score relevance + recency, filter out junk
   const scored = articles
     .map(a => ({
       article: a,
       score: relevanceScore(a, query, queryEntities) + recencyBoost(a.publishedAt),
     }))
-    .filter(a => a.score >= 0.5) // Strict: must match at least 50%
+    .filter(a => a.score >= threshold)
     .sort((a, b) => b.score - a.score);
 
   const lowCoverage = scored.length < 6;
@@ -398,12 +429,54 @@ export async function GET(request: NextRequest) {
     const allArticles = [...newsApiArticles, ...rssArticles];
 
     // Apply diversity engine with entity matching and temporal clustering
-    const { articles: diverseArticles, lowCoverage, clusters } = enforceDiversity(allArticles, query, pageSize, queryEntities);
+    let { articles: finalArticles, lowCoverage, clusters } = enforceDiversity(allArticles, query, pageSize, queryEntities);
+
+    // AI query expansion — only fires when coverage is thin
+    if (lowCoverage && process.env.ANTHROPIC_API_KEY) {
+      const expandedQueries = await expandQuery(query);
+
+      if (expandedQueries.length > 0) {
+        const expandedFetches = await Promise.allSettled(
+          expandedQueries.map(q => Promise.all([
+            fetchRSSArticles(q),
+            fetchNewsAPIArticles(q, language, location),
+          ]))
+        );
+
+        // Collect new articles, deduplicate by URL against what we already have
+        const seenUrls = new Set(allArticles.map(a => a.url));
+        const extraArticles: EnrichedArticle[] = [];
+
+        for (const result of expandedFetches) {
+          if (result.status === 'fulfilled') {
+            for (const article of [...result.value[1], ...result.value[0]]) {
+              if (article.url && !seenUrls.has(article.url)) {
+                seenUrls.add(article.url);
+                extraArticles.push(article);
+              }
+            }
+          }
+        }
+
+        if (extraArticles.length > 0) {
+          // Re-run diversity on the combined pool with a relaxed threshold
+          const expanded = enforceDiversity(
+            [...allArticles, ...extraArticles],
+            query,
+            pageSize,
+            queryEntities,
+            0.35
+          );
+          finalArticles = expanded.articles;
+          clusters = expanded.clusters;
+        }
+      }
+    }
 
     // Stats for the response
     const biasDistribution: Record<string, number> = {};
     const sourceNames: string[] = [];
-    for (const article of diverseArticles) {
+    for (const article of finalArticles) {
       const bias = article.sourceBias || 'unknown';
       biasDistribution[bias] = (biasDistribution[bias] || 0) + 1;
       if (!sourceNames.includes(article.source.name)) {
@@ -420,8 +493,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       query,
-      totalResults: diverseArticles.length,
-      articles: diverseArticles,
+      totalResults: finalArticles.length,
+      articles: finalArticles,
       diversity: {
         uniqueSources: sourceNames.length,
         sourceNames,
@@ -430,9 +503,6 @@ export async function GET(request: NextRequest) {
         newsApiArticlesFound: newsApiArticles.length,
         temporalClusters: clusterInfo,
       },
-      ...(lowCoverage && {
-        notice: 'Limited coverage found for this topic. Try broader search terms.',
-      }),
       metadata: {
         sourcesQueried: RSS_FEEDS.length + NEWS_SOURCES.filter(s => s.newsApiId).length,
         timestamp: new Date().toISOString(),
