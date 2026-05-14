@@ -315,6 +315,10 @@ function StoryContent() {
   const getBiasLabel = (bias?: string) =>
     bias?.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('-') || 'Unknown';
 
+  const hasSpectrum =
+    articles.length >= 4 &&
+    Object.keys(diversity?.biasDistribution ?? {}).length >= 2;
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0d1117]">
@@ -399,8 +403,8 @@ function StoryContent() {
             )}
           </div>
 
-          {/* Bias spectrum bar */}
-          {diversity && (
+          {/* Bias spectrum bar — only shown when enough sources for a real comparison */}
+          {diversity && hasSpectrum && (
             <div className="bg-white/[0.03] rounded-lg p-3 sm:p-4 border border-white/[0.06]">
               <p className="text-xs text-zinc-600 uppercase tracking-widest font-semibold mb-2">Political spectrum</p>
               <div className="flex gap-0.5 h-2 rounded-full overflow-hidden mb-2">
@@ -515,7 +519,7 @@ function StoryContent() {
               {articles.map((article, idx) => (
                 <article
                   key={idx}
-                  className={`bg-white/[0.03] rounded-lg border border-white/[0.06] border-l-4 ${getBiasBorderColor(article.sourceBias)} hover:bg-white/[0.05] hover:border-white/[0.1] transition-all overflow-hidden flex flex-col`}
+                  className={`bg-white/[0.03] rounded-lg border border-white/[0.06] ${hasSpectrum ? `border-l-4 ${getBiasBorderColor(article.sourceBias)}` : ''} hover:bg-white/[0.05] hover:border-white/[0.1] transition-all overflow-hidden flex flex-col`}
                 >
                   {article.urlToImage && (
                     <img src={article.urlToImage} alt="" className="w-full h-36 sm:h-44 object-cover opacity-80" loading="lazy" />
@@ -523,8 +527,12 @@ function StoryContent() {
                   <div className="p-4 flex flex-col flex-1">
                     <div className="flex items-center flex-wrap gap-1.5 mb-3">
                       <span className="text-sm font-semibold text-zinc-300">{article.source.name}</span>
-                      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${getBiasDotColor(article.sourceBias)}`} />
-                      <span className="text-xs text-zinc-600">{getBiasLabel(article.sourceBias)}</span>
+                      {hasSpectrum && (
+                        <>
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${getBiasDotColor(article.sourceBias)}`} />
+                          <span className="text-xs text-zinc-600">{getBiasLabel(article.sourceBias)}</span>
+                        </>
+                      )}
                       {article.publishedAt && (
                         <span className="text-xs text-zinc-700 ml-auto">{timeAgo(article.publishedAt)}</span>
                       )}
