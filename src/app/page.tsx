@@ -37,6 +37,7 @@ export default function Home() {
   const [locationEditing, setLocationEditing] = useState(false);
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'denied' | 'error'>('idle');
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [localHeadlines, setLocalHeadlines] = useState<string[]>([]);
   const router = useRouter();
 
   const saveLocation = (value: string) => {
@@ -48,6 +49,20 @@ export default function Home() {
     const saved = localStorage.getItem('cruxly-location');
     if (saved) setLocation(saved);
   }, []);
+
+  useEffect(() => {
+    if (!location) { setLocalHeadlines([]); return; }
+    fetch(`/api/news/local?location=${encodeURIComponent(location)}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (!data?.articles) return;
+        const titles: string[] = data.articles
+          .slice(0, 4)
+          .map((a: { title: string }) => a.title.length > 38 ? a.title.slice(0, 38).trim() + '…' : a.title);
+        setLocalHeadlines(titles);
+      })
+      .catch(() => {});
+  }, [location]);
 
   const detectLocation = () => {
     if (!navigator.geolocation) { setGeoStatus('error'); return; }
@@ -159,6 +174,28 @@ export default function Home() {
                 </button>
               ))}
             </div>
+
+            {/* Local headlines row */}
+            {localHeadlines.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-2">
+                <span className="text-xs text-amber-500/70 self-center shrink-0 flex items-center gap-1">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Near {location.split(',')[0].trim()}:
+                </span>
+                {localHeadlines.map((title) => (
+                  <button
+                    key={title}
+                    onClick={() => router.push(`/story?q=${encodeURIComponent(title)}`)}
+                    className="text-xs px-3 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/[0.04] text-amber-300/70 hover:text-amber-200 hover:border-amber-400/40 hover:bg-amber-400/[0.08] transition-all"
+                  >
+                    {title}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* Location Selector */}
             <div className="w-full flex justify-center">
