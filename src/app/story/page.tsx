@@ -217,7 +217,9 @@ function StoryContent() {
       const savedLocation = typeof window !== 'undefined' ? localStorage.getItem('cruxly-location') || '' : '';
       let url = `/api/news/search?q=${encodeURIComponent(query!)}&pageSize=12`;
       if (savedLocation) url += `&location=${encodeURIComponent(savedLocation)}`;
-      const response = await fetch(url);
+      const headers: Record<string, string> = {};
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+      const response = await fetch(url, { headers });
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to fetch news');

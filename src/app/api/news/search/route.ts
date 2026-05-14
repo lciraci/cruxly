@@ -6,6 +6,7 @@ import { NEWS_SOURCES, getSourceById } from '@/config/sources';
 import { RSS_FEEDS } from '@/config/rss-feeds';
 import { Article, EnrichedArticle, NewsAPIResponse } from '@/types/news';
 import type { BiasLeaning } from '@/config/sources';
+import { trackEvent } from '@/lib/analytics';
 
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const NEWS_API_BASE_URL = 'https://newsapi.org/v2';
@@ -415,6 +416,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Resolve optional user identity from auth header (non-blocking)
+    let searchUserId: string | null = null;
+    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    if (token) {
+      try {
+        const { getSupabaseAuthClient } = await import('@/lib/supabase');
+        const authClient = getSupabaseAuthClient();
+        if (authClient) {
+          const { data: { user } } = await authClient.auth.getUser(token);
+          searchUserId = user?.id ?? null;
+        }
+      } catch { /* ignore auth errors — search is always available */ }
+    }
+
     // Extract entities from query for smarter matching
     const { entities: queryEntities } = extractEntities(query);
 
@@ -490,6 +505,14 @@ export async function GET(request: NextRequest) {
       articleCount: articles.length,
       sources: [...new Set(articles.map(a => a.source.name))],
     }));
+
+    // Fire-and-forget analytics
+    trackEvent('search', {
+      query,
+      results: finalArticles.length,
+      location: location ?? null,
+      aiExpanded: lowCoverage,
+    }, searchUserId).catch(() => {});
 
     return NextResponse.json({
       query,

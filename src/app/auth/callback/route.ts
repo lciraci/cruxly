@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { trackEvent } from '@/lib/analytics';
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = new URL(req.url);
@@ -11,7 +12,12 @@ export async function GET(req: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     );
-    await supabase.auth.exchangeCodeForSession(code);
+    const { data } = await supabase.auth.exchangeCodeForSession(code);
+    if (data.session?.user) {
+      trackEvent('login', {
+        method: data.session.user.app_metadata?.provider ?? 'email',
+      }, data.session.user.id).catch(() => {});
+    }
   }
 
   return NextResponse.redirect(`${origin}${next}`);

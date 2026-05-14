@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { EnrichedArticle } from '@/types/news';
 import { StoryAnalysis, SourceAnalysis, FactClaim, BiasIndicator, StorySnapshot } from '@/types/analysis';
 import { normalizeStoryId, getSnapshots, saveSnapshot, computeDrift } from '@/lib/story-store';
+import { trackEvent } from '@/lib/analytics';
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -192,6 +193,13 @@ ${JSON.stringify(articleSummaries, null, 2)}`;
       drift,
       snapshotCount: existingSnapshots.length + 1,
     };
+
+    trackEvent('analysis', {
+      topic,
+      articleCount: articles.length,
+      snapshotCount: analysis.snapshotCount,
+      hasDrift: !!analysis.drift,
+    }, user.id).catch(() => {});
 
     return NextResponse.json(analysis);
 
