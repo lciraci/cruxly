@@ -2,22 +2,18 @@
 
 import { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { LogOut, Zap, Plus } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useCredits } from '@/hooks/useCredits';
 import AuthModal from '@/components/AuthModal';
-import BuyCreditsModal from '@/components/BuyCreditsModal';
 
 export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showAuth, setShowAuth] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
-  const [showBuyCredits, setShowBuyCredits] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
-  const { user, session, loading, signOut } = useAuth();
-  const { credits, refetch } = useCredits(session);
+  const { user, loading, signOut } = useAuth();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,16 +63,6 @@ export default function Navbar() {
                 <>
                   {user ? (
                     <div className="relative ml-2 flex items-center gap-2">
-                      {/* Credits badge — clickable to buy more */}
-                      <button
-                        onClick={() => setShowBuyCredits(true)}
-                        className="group flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-400/10 border border-amber-400/20 hover:bg-amber-400/20 hover:border-amber-400/40 text-xs font-semibold text-amber-400 transition-all"
-                        title="Buy more credits"
-                      >
-                        <Zap size={11} />
-                        {credits ?? '—'}
-                        <Plus size={10} className="opacity-50 group-hover:opacity-100 transition-opacity" />
-                      </button>
                       {/* User avatar */}
                       <button
                         onClick={() => setShowUserMenu(v => !v)}
@@ -167,11 +153,8 @@ export default function Navbar() {
       {showAuth && (
         <AuthModal
           onClose={() => setShowAuth(false)}
-          onSuccess={() => { refetch(); }}
+          onSuccess={() => setShowAuth(false)}
         />
-      )}
-      {showBuyCredits && session && (
-        <BuyCreditsModal session={session} onClose={() => setShowBuyCredits(false)} />
       )}
     </>
   );

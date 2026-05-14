@@ -7,9 +7,7 @@ import { StoryAnalysis, NarrativeDrift } from '@/types/analysis';
 import AdBanner from '@/components/AdBanner';
 import { SkeletonGrid, SkeletonBiasBar } from '@/components/SkeletonCard';
 import { useAuth } from '@/hooks/useAuth';
-import { useCredits } from '@/hooks/useCredits';
 import AuthModal from '@/components/AuthModal';
-import BuyCreditsModal from '@/components/BuyCreditsModal';
 
 function timeAgo(dateString: string): string {
   const now = Date.now();
@@ -204,9 +202,7 @@ function StoryContent() {
     biasDistribution: Record<string, number>;
   } | null>(null);
   const [showAuth, setShowAuth] = useState(false);
-  const [showBuyCredits, setShowBuyCredits] = useState(false);
   const { user, session } = useAuth();
-  const { credits, refetch: refetchCredits } = useCredits(session);
 
   useEffect(() => {
     if (!query) { router.push('/'); return; }
@@ -241,7 +237,6 @@ function StoryContent() {
   const analyzeArticles = async () => {
     if (articles.length === 0) return;
     if (!user) { setShowAuth(true); return; }
-    if (credits !== null && credits < 1) { setShowBuyCredits(true); return; }
     try {
       setAnalyzing(true);
       setError(null);
@@ -256,13 +251,11 @@ function StoryContent() {
       if (!response.ok) {
         const errorData = await response.json();
         if (response.status === 401) { setShowAuth(true); return; }
-        if (response.status === 402) { setShowBuyCredits(true); return; }
         throw new Error(errorData.error || 'Failed to analyze articles');
       }
       const data = await response.json();
       setAnalysis(data);
       setActiveTab(data.drift ? 'dna' : 'analysis');
-      refetchCredits();
       clusterArticles();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Analysis failed');
@@ -403,7 +396,7 @@ function StoryContent() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                     </svg>
-                    {!user ? 'Sign in to analyze' : credits === 0 ? 'Buy credits' : 'Cruxly Analysis'}
+                    {!user ? "Sign in to analyze — it's free" : 'Cruxly Analysis'}
                   </>
                 )}
               </button>
@@ -753,11 +746,8 @@ function StoryContent() {
       {showAuth && (
         <AuthModal
           onClose={() => setShowAuth(false)}
-          onSuccess={() => { refetchCredits(); setShowAuth(false); }}
+          onSuccess={() => setShowAuth(false)}
         />
-      )}
-      {showBuyCredits && session && (
-        <BuyCreditsModal session={session} onClose={() => setShowBuyCredits(false)} />
       )}
     </div>
   );
