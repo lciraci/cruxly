@@ -217,8 +217,11 @@ function StoryContent() {
       const savedLocation = typeof window !== 'undefined' ? localStorage.getItem('cruxly-location') || '' : '';
       let url = `/api/news/search?q=${encodeURIComponent(query!)}&pageSize=12`;
       if (savedLocation) url += `&location=${encodeURIComponent(savedLocation)}`;
+      // Read session directly from Supabase client — avoids race with React state
+      const { supabaseBrowser } = await import('@/lib/supabase-browser');
+      const { data: { session: currentSession } } = await supabaseBrowser.auth.getSession();
       const headers: Record<string, string> = {};
-      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+      if (currentSession?.access_token) headers['Authorization'] = `Bearer ${currentSession.access_token}`;
       const response = await fetch(url, { headers });
       if (!response.ok) {
         const errorData = await response.json();
