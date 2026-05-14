@@ -5,15 +5,34 @@ import Script from "next/script";
 import Navbar from "@/components/Navbar";
 import "./globals.css";
 
+const SITE_URL = "https://cruxly-woad.vercel.app";
+const DESCRIPTION =
+  "Search any news topic and instantly see how left, center, and right media frame it — what facts they share and what they leave out.";
+
 export const metadata: Metadata = {
-  title: "Cruxly — One story. Every side.",
-  description:
-    "Search any news topic and instantly see how different outlets frame it, what facts they share, and what they're each leaving out.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Cruxly — One story. Every side.",
+    template: "%s — Cruxly",
+  },
+  description: DESCRIPTION,
   openGraph: {
     title: "Cruxly — One story. Every side.",
-    description:
-      "Search any news topic and instantly see how different outlets frame it, what facts they share, and what they're each leaving out.",
+    description: DESCRIPTION,
     type: "website",
+    url: SITE_URL,
+    siteName: "Cruxly",
+    images: [{ url: "/api/og", width: 1200, height: 630, alt: "Cruxly — One story. Every side." }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Cruxly — One story. Every side.",
+    description: DESCRIPTION,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
   },
 };
 
