@@ -315,6 +315,21 @@ export default function StoryContent() {
       setArticles(data.articles);
       if (data.diversity) setDiversity(data.diversity);
       if (data.notice) setNotice(data.notice);
+
+      // Track after we know the article count — so trending only surfaces real results
+      if (currentSession?.access_token && data.articles?.length > 0) {
+        fetch('/api/events', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${currentSession.access_token}`,
+          },
+          body: JSON.stringify({
+            event: 'search',
+            data: { query, articleCount: data.articles.length },
+          }),
+        }).catch(() => {});
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');
       setErrorType('search');

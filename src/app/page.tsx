@@ -104,25 +104,9 @@ export default function Home() {
     }
   };
 
-  // Track a search event server-side via the events API.
-  const trackSearch = useCallback((query: string, source: string) => {
-    if (!session?.access_token) return;
-    fetch('/api/events', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
-      },
-      body: JSON.stringify({ event: 'search', data: { query, source } }),
-    }).catch(() => {});
-  }, [session]);
-
-  const navigate = useCallback((url: string, query: string, source: string) => {
-    requireAuth(() => {
-      trackSearch(query, source);
-      router.push(url);
-    });
-  }, [requireAuth, trackSearch, router]);
+  const navigate = useCallback((url: string, action: () => void = () => {}) => {
+    requireAuth(() => { action(); router.push(url); });
+  }, [requireAuth, router]);
 
   const detectLocation = () => {
     if (!navigator.geolocation) { setGeoStatus('error'); return; }
@@ -154,7 +138,7 @@ export default function Home() {
     e.preventDefault();
     const q = searchQuery.trim();
     if (!q) return;
-    navigate(`/story?q=${encodeURIComponent(q)}`, q, 'homepage-search');
+    navigate(`/story?q=${encodeURIComponent(q)}`);
   };
 
   const handleWaitlist = async (e: React.FormEvent) => {
@@ -238,7 +222,7 @@ export default function Home() {
               {trendingSearches.map((q) => (
                 <button
                   key={q}
-                  onClick={() => navigate(`/story?q=${encodeURIComponent(q)}`, q, 'popular-search')}
+                  onClick={() => navigate(`/story?q=${encodeURIComponent(q)}`)}
                   className="text-xs px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] text-zinc-400 hover:text-zinc-100 hover:border-white/[0.16] hover:bg-white/[0.06] transition-all"
                 >
                   {q}
@@ -387,7 +371,7 @@ export default function Home() {
             {TOP_CATEGORIES.map(({ label, query, Icon, desc }) => (
               <button
                 key={label}
-                onClick={() => navigate(`/story?q=${encodeURIComponent(query)}`, query, 'category')}
+                onClick={() => navigate(`/story?q=${encodeURIComponent(query)}`)}
                 className="group flex flex-col gap-5 p-6 rounded-2xl border border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.04] hover:border-amber-400/25 transition-all text-left"
               >
                 <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center group-hover:bg-amber-400/15 group-hover:border-amber-400/40 transition-all">

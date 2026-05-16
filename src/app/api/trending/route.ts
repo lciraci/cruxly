@@ -33,17 +33,20 @@ export async function GET() {
         const counts = new Map<string, number>();
         for (const row of data) {
           const q: string | undefined = row.data?.query;
-          if (q && q.trim().length > 2) {
+          const articleCount: number = row.data?.articleCount ?? 0;
+          // Only count searches that actually returned results
+          if (q && q.trim().length > 2 && articleCount >= 3) {
             const key = q.trim().toLowerCase();
             counts.set(key, (counts.get(key) ?? 0) + 1);
           }
         }
 
-        // Preserve original casing from first occurrence
+        // Preserve original casing from first qualifying occurrence
         const origCase = new Map<string, string>();
         for (const row of data) {
           const q: string | undefined = row.data?.query;
-          if (q && q.trim().length > 2) {
+          const articleCount: number = row.data?.articleCount ?? 0;
+          if (q && q.trim().length > 2 && articleCount >= 3) {
             const key = q.trim().toLowerCase();
             if (!origCase.has(key)) origCase.set(key, q.trim());
           }
