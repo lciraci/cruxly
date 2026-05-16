@@ -158,6 +158,52 @@ function StoryDNA({ drift, topic, snapshotCount }: { drift: NarrativeDrift; topi
   );
 }
 
+const ANALYSIS_STEPS = [
+  'Reading articles across the spectrum…',
+  'Identifying consensus facts…',
+  'Detecting bias patterns…',
+  'Mapping how each side frames it…',
+  'Finding what they\'re not telling you…',
+  'Building your analysis…',
+];
+
+function AnalyzingBanner() {
+  const [progress, setProgress] = useState(0);
+  const [stepIdx, setStepIdx] = useState(0);
+
+  useEffect(() => {
+    // Advance to ~85% over ~12 s with random increments, then stall until done
+    let p = 0;
+    const tick = setInterval(() => {
+      p = Math.min(p + Math.random() * 7 + 3, 85);
+      setProgress(p);
+    }, 900);
+    return () => clearInterval(tick);
+  }, []);
+
+  useEffect(() => {
+    const cycle = setInterval(() => {
+      setStepIdx(i => (i + 1) % ANALYSIS_STEPS.length);
+    }, 2400);
+    return () => clearInterval(cycle);
+  }, []);
+
+  return (
+    <div className="mb-6 bg-amber-400/[0.06] border border-amber-400/20 rounded-xl p-5">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-medium text-amber-300 transition-all">{ANALYSIS_STEPS[stepIdx]}</span>
+        <span className="text-sm font-bold text-amber-400 tabular-nums">{Math.round(progress)}%</span>
+      </div>
+      <div className="h-1.5 bg-white/[0.05] rounded-full overflow-hidden">
+        <div
+          className="h-full bg-amber-400 rounded-full transition-[width] duration-700 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function OmissionsSection({ keyOmissions }: { keyOmissions?: import('@/types/analysis').KeyOmissionsByBias }) {
   if (!keyOmissions) return null;
   const groups = [
@@ -420,7 +466,7 @@ export default function StoryContent() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                     </svg>
-                    Analyzing…
+                    Analyzing
                   </>
                 ) : (
                   <>
@@ -471,6 +517,9 @@ export default function StoryContent() {
             </div>
           )}
         </div>
+
+        {/* ── Analyzing progress banner ──────────────────────────────── */}
+        {analyzing && <AnalyzingBanner />}
 
         {/* ── Analysis error ──────────────────────────────────────────── */}
         {error && errorType === 'analysis' && (
