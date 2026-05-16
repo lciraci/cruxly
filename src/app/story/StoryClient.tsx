@@ -58,7 +58,41 @@ function ClaimList({ claims, color }: { claims: string[]; color: 'green' | 'red'
   );
 }
 
+const DNA_EXPLAINER = [
+  {
+    icon: '📊',
+    label: 'Drift score',
+    color: 'text-zinc-300',
+    desc: 'How much the story has shifted since first analyzed. 0 = stable narrative, 100 = major changes across sources.',
+  },
+  {
+    icon: '+',
+    label: 'New consensus facts',
+    color: 'text-emerald-400',
+    desc: 'Claims now reported by multiple sources that weren\'t agreed upon in the previous analysis.',
+  },
+  {
+    icon: '−',
+    label: 'Dropped from consensus',
+    color: 'text-rose-400',
+    desc: 'Facts that were widely reported before but sources have quietly stopped mentioning.',
+  },
+  {
+    icon: '!',
+    label: 'Newly disputed',
+    color: 'text-amber-400',
+    desc: 'Claims that were accepted last time but are now being questioned or contradicted by some sources.',
+  },
+  {
+    icon: '✓',
+    label: 'Disputes resolved',
+    color: 'text-blue-400',
+    desc: 'Contested claims that sources now agree on — the story has settled on these points.',
+  },
+];
+
 function StoryDNA({ drift, topic, snapshotCount }: { drift: NarrativeDrift; topic: string; snapshotCount: number }) {
+  const [showHelp, setShowHelp] = useState(false);
   const firstDate = new Date(drift.firstSeen).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const prevDate  = new Date(drift.previousTimestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   const prevTime  = new Date(drift.previousTimestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
@@ -69,9 +103,18 @@ function StoryDNA({ drift, topic, snapshotCount }: { drift: NarrativeDrift; topi
       <div className="bg-white/[0.03] rounded-xl border border-white/[0.07] p-5 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
-            <h2 className="text-lg font-bold text-zinc-100 flex items-center gap-2 mb-1">
-              Story DNA
-            </h2>
+            <div className="flex items-center gap-3 mb-1">
+              <h2 className="text-lg font-bold text-zinc-100">Story DNA</h2>
+              <button
+                onClick={() => setShowHelp(v => !v)}
+                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-300 border border-white/[0.08] hover:border-white/[0.16] rounded-full px-2.5 py-1 transition-all"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {showHelp ? 'Hide guide' : 'How to read this'}
+              </button>
+            </div>
             <p className="text-zinc-500 text-sm">
               Tracking &ldquo;{topic}&rdquo; since {firstDate}
             </p>
@@ -88,6 +131,20 @@ function StoryDNA({ drift, topic, snapshotCount }: { drift: NarrativeDrift; topi
             </div>
           </div>
         </div>
+        {showHelp && (
+          <div className="mt-4 rounded-lg border border-white/[0.07] bg-white/[0.02] divide-y divide-white/[0.05]">
+            {DNA_EXPLAINER.map(({ icon, label, color, desc }) => (
+              <div key={label} className="flex gap-3 px-4 py-3">
+                <span className={`text-sm font-bold w-4 shrink-0 mt-0.5 ${color}`}>{icon}</span>
+                <div>
+                  <span className={`text-xs font-semibold ${color}`}>{label}</span>
+                  <p className="text-xs text-zinc-500 mt-0.5 leading-relaxed">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
         <div className="mt-5 flex items-center gap-3 text-xs text-zinc-600">
           <span className="shrink-0">{firstDate}</span>
           <div className="flex-1 h-1 bg-white/[0.06] rounded-full overflow-hidden">
