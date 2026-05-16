@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import RSSParser from 'rss-parser';
+import { findFeedsForLocation, cleanDescription, parseTitle, LocalFeed } from '@/lib/local-feeds';
 
 const rssParser = new RSSParser();
+const FEED_TIMEOUT_MS = 5000;
 
+// ── Google News locale map (used only in fallback) ────────────────────────────
 const LOCALE_MAP: Record<string, { hl: string; gl: string; ceid: string }> = {
   IT: { hl: 'it', gl: 'IT', ceid: 'IT:it' },
   FR: { hl: 'fr', gl: 'FR', ceid: 'FR:fr' },
@@ -24,52 +27,99 @@ const LOCALE_MAP: Record<string, { hl: string; gl: string; ceid: string }> = {
 };
 const DEFAULT_LOCALE = { hl: 'en', gl: 'US', ceid: 'US:en' };
 
-// Location strings from Nominatim arrive as "City, State, CC" — extract the trailing 2-letter country code
 function localeFromLocation(location: string) {
   const last = location.trim().split(',').pop()?.trim().toUpperCase() ?? '';
   return LOCALE_MAP[last] ?? DEFAULT_LOCALE;
 }
 
-// Build a Google News query that covers city + state/region, without the country code.
-// "Charlotte, North Carolina, US" → "Charlotte North Carolina"
-// "Milan, IT" → "Milan"
 function buildGeoQuery(location: string): string {
   const parts = location.split(',').map(s => s.trim()).filter(Boolean);
-  // drop trailing 2-letter country code
   const last = parts[parts.length - 1];
   const withoutCountry = last.length <= 2 ? parts.slice(0, -1) : parts;
-  return withoutCountry.slice(0, 2).join(' '); // at most "City State"
+  return withoutCountry.slice(0, 2).join(' ');
 }
 
-function cleanDescription(raw: string | undefined | null, title: string): string | null {
-  if (!raw) return null;
-  const text = raw.replace(/<[^>]+>/g, '').trim();
-  if (text.length < 40) return null;
-  // Google News contentSnippet is usually "Title - Source Name" — skip if it just repeats the title
-  const titleWords = title.toLowerCase().replace(/[^a-z0-9 ]/g, '').slice(0, 50);
-  const textWords = text.toLowerCase().replace(/[^a-z0-9 ]/g, '');
-  if (textWords.startsWith(titleWords)) return null;
-  return text;
+// ── Feed fetching ─────────────────────────────────────────────────────────────
+
+async function fetchFeedSafely(feed: LocalFeed): Promise<RSSParser.Output<{}> | null> {
+  try {
+    return await Promise.race([
+      rssParser.parseURL(feed.url),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), FEED_TIMEOUT_MS)
+      ),
+    ]);
+  } catch {
+    return null;
+  }
 }
+
+// ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const location = searchParams.get('location');
 
   if (!location) {
-    return NextResponse.json(
-      { error: 'location parameter is required' },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: 'location parameter is required' }, { status: 400 });
   }
 
   try {
+    const curatedFeeds = findFeedsForLocation(location);
+
+    if (curatedFeeds.length > 0) {
+      const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
+      const feedResults = await Promise.all(curatedFeeds.map(fetchFeedSafely));
+
+      const seen = new Set<string>();
+      const articles = [];
+
+      for (let i = 0; i < feedResults.length; i++) {
+        const feed = feedResults[i];
+        if (!feed) continue;
+        const feedName = curatedFeeds[i].name;
+
+        for (const item of feed.items || []) {
+          const url = item.link || '';
+          if (!url || seen.has(url)) continue;
+
+          const dateStr = item.pubDate || item.isoDate;
+          if (!dateStr) continue;
+          const ts = new Date(dateStr).getTime();
+          if (isNaN(ts) || ts < sevenDaysAgo) continue;
+
+          seen.add(url);
+          const { title } = parseTitle(item.title || '');
+          if (!title) continue;
+
+          articles.push({
+            title,
+            url,
+            publishedAt: dateStr,
+            source: { name: feedName, id: null },
+            description: cleanDescription(item.contentSnippet || item.content, title),
+            urlToImage: null,
+            author: null,
+            content: null,
+          });
+        }
+      }
+
+      articles.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+
+      if (articles.length > 0) {
+        return NextResponse.json({ articles: articles.slice(0, 10), location, source: 'curated' });
+      }
+      // No articles from curated feeds (all down?) → fall through to Google News
+    }
+
+    // ── Google News fallback ─────────────────────────────────────────────────
     const { hl, gl, ceid } = localeFromLocation(location);
     const geoQuery = encodeURIComponent(buildGeoQuery(location));
     const feedUrl = `https://news.google.com/rss/search?q=${geoQuery}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
 
     const feed = await rssParser.parseURL(feedUrl);
-
     const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
 
     const articles = (feed.items || [])
@@ -81,16 +131,12 @@ export async function GET(request: NextRequest) {
       })
       .slice(0, 10)
       .map((item) => {
-        // Google News titles often end with " - Source Name"
-        const titleParts = (item.title || '').split(' - ');
-        const sourceName = titleParts.length > 1 ? titleParts.pop()!.trim() : 'Unknown';
-        const title = titleParts.join(' - ').trim();
-
+        const { title, sourceSuffix } = parseTitle(item.title || '');
         return {
           title,
           url: item.link || '',
           publishedAt: item.pubDate || item.isoDate || '',
-          source: { name: sourceName, id: null },
+          source: { name: sourceSuffix || 'Unknown', id: null },
           description: cleanDescription(item.contentSnippet || item.content, title),
           urlToImage: null,
           author: null,
@@ -98,12 +144,10 @@ export async function GET(request: NextRequest) {
         };
       });
 
-    return NextResponse.json({ articles, location });
+    return NextResponse.json({ articles, location, source: 'google' });
+
   } catch (err) {
     console.error('Local news fetch failed:', err);
-    return NextResponse.json(
-      { error: 'Failed to fetch local news' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to fetch local news' }, { status: 500 });
   }
 }
