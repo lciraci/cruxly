@@ -6,6 +6,8 @@ import { Landmark, TrendingUp, Cpu, Globe, ArrowRight } from 'lucide-react';
 import HowItWorks from '@/components/HowItWorks';
 import SpectrumBar from '@/components/SpectrumBar';
 import AuthModal from '@/components/AuthModal';
+import BuyCreditsModal from '@/components/BuyCreditsModal';
+import UsageCounter from '@/components/UsageCounter';
 import { useAuth } from '@/hooks/useAuth';
 
 interface LocalArticle {
@@ -42,6 +44,7 @@ export default function Home() {
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [localArticles, setLocalArticles] = useState<{ title: string; url: string }[]>([]);
   const [showAuth, setShowAuth] = useState(false);
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [trendingSearches, setTrendingSearches] = useState<string[]>(FALLBACK_SEARCHES);
   const [trendingSource, setTrendingSource] = useState<'users' | 'headlines' | null>(null);
@@ -219,6 +222,13 @@ export default function Home() {
                 Search
               </button>
             </form>
+
+            {/* Usage counter */}
+            {user && (
+              <div className="flex justify-center">
+                <UsageCounter session={session} onUpgradeClick={() => setShowBuyCredits(true)} />
+              </div>
+            )}
 
             {/* Trending Searches */}
             <div className="flex flex-wrap justify-center gap-2">
@@ -471,6 +481,13 @@ export default function Home() {
         <AuthModal
           onClose={() => { setShowAuth(false); setPendingAction(null); }}
           onSuccess={handleAuthSuccess}
+        />
+      )}
+
+      {showBuyCredits && session && (
+        <BuyCreditsModal
+          session={session}
+          onClose={() => setShowBuyCredits(false)}
         />
       )}
     </div>
