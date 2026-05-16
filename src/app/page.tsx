@@ -16,7 +16,8 @@ interface LocalArticle {
   description: string | null;
 }
 
-const POPULAR_SEARCHES = [
+// Static fallback shown while the live list loads or if the API is unavailable.
+const FALLBACK_SEARCHES = [
   'Trump tariffs',
   'Gaza ceasefire',
   'AI jobs impact',
@@ -42,6 +43,8 @@ export default function Home() {
   const [localArticles, setLocalArticles] = useState<{ title: string; url: string }[]>([]);
   const [showAuth, setShowAuth] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [trendingSearches, setTrendingSearches] = useState<string[]>(FALLBACK_SEARCHES);
+  const [trendingSource, setTrendingSource] = useState<'users' | 'headlines' | null>(null);
   const router = useRouter();
   const { user, session } = useAuth();
 
@@ -53,6 +56,18 @@ export default function Home() {
   useEffect(() => {
     const saved = localStorage.getItem('cruxly-location');
     if (saved) setLocation(saved);
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/trending')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.searches?.length >= 3) {
+          setTrendingSearches(data.searches);
+          setTrendingSource(data.source);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -205,10 +220,12 @@ export default function Home() {
               </button>
             </form>
 
-            {/* Popular Searches */}
+            {/* Trending Searches */}
             <div className="flex flex-wrap justify-center gap-2">
-              <span className="text-xs text-zinc-600 self-center shrink-0">Others search:</span>
-              {POPULAR_SEARCHES.map((q) => (
+              <span className="text-xs text-zinc-600 self-center shrink-0">
+                {trendingSource === 'users' ? 'Trending on Cruxly:' : 'Trending now:'}
+              </span>
+              {trendingSearches.map((q) => (
                 <button
                   key={q}
                   onClick={() => navigate(`/story?q=${encodeURIComponent(q)}`, q, 'popular-search')}
