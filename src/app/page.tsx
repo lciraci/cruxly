@@ -37,7 +37,7 @@ export default function Home() {
   const [locationEditing, setLocationEditing] = useState(false);
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'denied' | 'error'>('idle');
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [localHeadlines, setLocalHeadlines] = useState<string[]>([]);
+  const [localArticles, setLocalArticles] = useState<{ title: string }[]>([]);
   const router = useRouter();
 
   const saveLocation = (value: string) => {
@@ -51,15 +51,14 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (!location) { setLocalHeadlines([]); return; }
+    if (!location) { setLocalArticles([]); return; }
     fetch(`/api/news/local?location=${encodeURIComponent(location)}`)
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data?.articles) return;
-        const titles: string[] = data.articles
-          .slice(0, 4)
-          .map((a: { title: string }) => a.title.length > 38 ? a.title.slice(0, 38).trim() + '…' : a.title);
-        setLocalHeadlines(titles);
+        setLocalArticles(
+          data.articles.slice(0, 6).map((a: { title: string }) => ({ title: a.title }))
+        );
       })
       .catch(() => {});
   }, [location]);
@@ -176,7 +175,7 @@ export default function Home() {
             </div>
 
             {/* Local headlines row */}
-            {localHeadlines.length > 0 && (
+            {localArticles.length > 0 && (
               <div className="flex flex-wrap justify-center gap-2">
                 <span className="text-xs text-amber-500/70 self-center shrink-0 flex items-center gap-1">
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -185,13 +184,14 @@ export default function Home() {
                   </svg>
                   Near {location.split(',')[0].trim()}:
                 </span>
-                {localHeadlines.map((title) => (
+                {localArticles.map((article) => (
                   <button
-                    key={title}
-                    onClick={() => router.push(`/story?q=${encodeURIComponent(title)}`)}
-                    className="text-xs px-3 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/[0.04] text-amber-300/70 hover:text-amber-200 hover:border-amber-400/40 hover:bg-amber-400/[0.08] transition-all"
+                    key={article.title}
+                    title={article.title}
+                    onClick={() => router.push(`/story?q=${encodeURIComponent(article.title)}`)}
+                    className="text-xs px-3 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/[0.04] text-amber-300/70 hover:text-amber-200 hover:border-amber-400/40 hover:bg-amber-400/[0.08] transition-all max-w-[220px] truncate"
                   >
-                    {title}
+                    {article.title}
                   </button>
                 ))}
               </div>

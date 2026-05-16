@@ -30,6 +30,17 @@ function localeFromLocation(location: string) {
   return LOCALE_MAP[last] ?? DEFAULT_LOCALE;
 }
 
+// Build a Google News query that covers city + state/region, without the country code.
+// "Charlotte, North Carolina, US" → "Charlotte North Carolina"
+// "Milan, IT" → "Milan"
+function buildGeoQuery(location: string): string {
+  const parts = location.split(',').map(s => s.trim()).filter(Boolean);
+  // drop trailing 2-letter country code
+  const last = parts[parts.length - 1];
+  const withoutCountry = last.length <= 2 ? parts.slice(0, -1) : parts;
+  return withoutCountry.slice(0, 2).join(' '); // at most "City State"
+}
+
 function cleanDescription(raw: string | undefined | null, title: string): string | null {
   if (!raw) return null;
   const text = raw.replace(/<[^>]+>/g, '').trim();
@@ -54,7 +65,7 @@ export async function GET(request: NextRequest) {
 
   try {
     const { hl, gl, ceid } = localeFromLocation(location);
-    const geoQuery = encodeURIComponent(location);
+    const geoQuery = encodeURIComponent(buildGeoQuery(location));
     const feedUrl = `https://news.google.com/rss/search?q=${geoQuery}&hl=${hl}&gl=${gl}&ceid=${ceid}`;
 
     const feed = await rssParser.parseURL(feedUrl);
@@ -68,7 +79,7 @@ export async function GET(request: NextRequest) {
         const ts = new Date(dateStr).getTime();
         return !isNaN(ts) && ts >= sevenDaysAgo;
       })
-      .slice(0, 8)
+      .slice(0, 10)
       .map((item) => {
         // Google News titles often end with " - Source Name"
         const titleParts = (item.title || '').split(' - ');
