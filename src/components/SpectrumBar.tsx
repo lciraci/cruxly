@@ -19,9 +19,9 @@ export default function SpectrumBar() {
     <div className="w-full max-w-3xl mx-auto">
       {/* Labels */}
       <div className="grid grid-cols-3 mb-3 text-center">
-        <span className="text-xs font-bold text-blue-400 tracking-widest uppercase">Left</span>
-        <span className="text-xs font-bold text-zinc-400 tracking-widest uppercase">Center</span>
-        <span className="text-xs font-bold text-red-400 tracking-widest uppercase">Right</span>
+        <span className="text-xs font-bold text-blue-400 tracking-widest uppercase">Liberal</span>
+        <span className="text-xs font-bold text-zinc-400 tracking-widest uppercase">Balanced</span>
+        <span className="text-xs font-bold text-red-400 tracking-widest uppercase">Conservative</span>
       </div>
 
       {/* Gradient bar */}

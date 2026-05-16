@@ -215,9 +215,9 @@ function AnalyzingBanner() {
 function OmissionsSection({ keyOmissions }: { keyOmissions?: import('@/types/analysis').KeyOmissionsByBias }) {
   if (!keyOmissions) return null;
   const groups = [
-    { key: 'left',   label: 'Left media',   dot: 'bg-blue-700', text: 'text-blue-400', border: 'border-blue-700/20', bg: 'bg-blue-700/[0.05]',  items: keyOmissions.left   },
-    { key: 'center', label: 'Center media', dot: 'bg-zinc-400', text: 'text-zinc-400', border: 'border-zinc-500/20', bg: 'bg-zinc-500/[0.05]',  items: keyOmissions.center },
-    { key: 'right',  label: 'Right media',  dot: 'bg-red-600',  text: 'text-red-400',  border: 'border-red-600/20',  bg: 'bg-red-600/[0.05]',   items: keyOmissions.right  },
+    { key: 'left',   label: 'Liberal media',      dot: 'bg-blue-700', text: 'text-blue-400', border: 'border-blue-700/20', bg: 'bg-blue-700/[0.05]',  items: keyOmissions.left   },
+    { key: 'center', label: 'Balanced media',     dot: 'bg-zinc-400', text: 'text-zinc-400', border: 'border-zinc-500/20', bg: 'bg-zinc-500/[0.05]',  items: keyOmissions.center },
+    { key: 'right',  label: 'Conservative media', dot: 'bg-red-600',  text: 'text-red-400',  border: 'border-red-600/20',  bg: 'bg-red-600/[0.05]',   items: keyOmissions.right  },
   ].filter(g => g.items?.length > 0);
   if (groups.length === 0) return null;
   return (
@@ -394,8 +394,8 @@ export default function StoryContent() {
 
   const getBiasLabel = (bias?: string) => {
     const labels: Record<string, string> = {
-      'left': 'Left', 'center-left': 'Center-Left',
-      'center': 'Center', 'center-right': 'Center-Right', 'right': 'Right',
+      'left': 'Liberal', 'center-left': 'Lean Liberal',
+      'center': 'Balanced', 'center-right': 'Lean Conservative', 'right': 'Conservative',
     };
     return bias ? (labels[bias] ?? bias) : 'Unknown';
   };
@@ -725,7 +725,7 @@ export default function StoryContent() {
                     <div className="rounded-lg border border-blue-700/30 bg-blue-700/[0.07] p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="w-2 h-2 rounded-full bg-blue-700 shrink-0" />
-                        <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">Left</span>
+                        <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">Liberal</span>
                       </div>
                       <p className="text-sm text-zinc-300 leading-relaxed">{analysis.perspectives.left}</p>
                     </div>
@@ -734,7 +734,7 @@ export default function StoryContent() {
                     <div className="rounded-lg border border-zinc-500/30 bg-zinc-500/[0.07] p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="w-2 h-2 rounded-full bg-zinc-400 shrink-0" />
-                        <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Center</span>
+                        <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Balanced</span>
                       </div>
                       <p className="text-sm text-zinc-300 leading-relaxed">{analysis.perspectives.center}</p>
                     </div>
@@ -743,7 +743,7 @@ export default function StoryContent() {
                     <div className="rounded-lg border border-red-600/30 bg-red-600/[0.07] p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="w-2 h-2 rounded-full bg-red-600 shrink-0" />
-                        <span className="text-xs font-bold text-red-400 uppercase tracking-widest">Right</span>
+                        <span className="text-xs font-bold text-red-400 uppercase tracking-widest">Conservative</span>
                       </div>
                       <p className="text-sm text-zinc-300 leading-relaxed">{analysis.perspectives.right}</p>
                     </div>

@@ -17,7 +17,7 @@ const defaultSteps: HowItWorksStep[] = [
   {
     step: '02',
     title: 'Search All Sides',
-    desc: 'Search any topic. Cruxly scans 30+ outlets across the full political spectrum—left, center, and right.',
+    desc: 'Search any topic. Cruxly scans 30+ outlets across the full political spectrum—liberal, balanced, and conservative.',
     Icon: Search,
   },
   {

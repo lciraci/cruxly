@@ -111,8 +111,8 @@ Analysis rules:
 2. DISPUTED CLAIMS: Claims that only appear in some sources or are framed very differently. Source names only — never append article indices.
 3. SOURCE-BY-SOURCE ANALYSIS: For each article provide key factual claims, bias indicators, emotional tone, omissions, and a score (0-100). Use ONLY the provided "source" field value as sourceName.
 4. SUMMARY: A neutral, fact-based summary synthesizing what we can confidently know.
-5. PERSPECTIVES: Group as left-leaning (bias: left or center-left), center (bias: center), right-leaning (bias: center-right or right). Write 2-3 sentences on how each group frames the story — their emphasis, angle, and what they stress. null if that group has no articles.
-6. KEY OMISSIONS BY BIAS: For each group, list 2-4 SPECIFIC facts or context points they leave out while other groups cover them. Be concrete — not vague phrases like "nuance" but actual missing information.
+5. PERSPECTIVES: Group as liberal (bias: left or center-left), balanced (bias: center), conservative (bias: center-right or right). Write 2-3 sentences on how each group frames the story — their emphasis, angle, and what they stress. null if that group has no articles.
+6. KEY OMISSIONS BY BIAS: For each group (liberal/balanced/conservative), list 2-4 SPECIFIC facts or context points they leave out while other groups cover them. Be concrete — not vague phrases like "nuance" but actual missing information.
 
 Return ONLY valid JSON — no markdown, no explanation.`;
 
