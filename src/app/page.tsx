@@ -37,7 +37,7 @@ export default function Home() {
   const [locationEditing, setLocationEditing] = useState(false);
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'denied' | 'error'>('idle');
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [localArticles, setLocalArticles] = useState<{ title: string }[]>([]);
+  const [localArticles, setLocalArticles] = useState<{ title: string; url: string }[]>([]);
   const router = useRouter();
 
   const saveLocation = (value: string) => {
@@ -57,7 +57,7 @@ export default function Home() {
       .then(data => {
         if (!data?.articles) return;
         setLocalArticles(
-          data.articles.slice(0, 6).map((a: { title: string }) => ({ title: a.title }))
+          data.articles.slice(0, 6).map((a: { title: string; url: string }) => ({ title: a.title, url: a.url }))
         );
       })
       .catch(() => {});
@@ -185,14 +185,16 @@ export default function Home() {
                   Near {location.split(',')[0].trim()}:
                 </span>
                 {localArticles.map((article) => (
-                  <button
-                    key={article.title}
+                  <a
+                    key={article.url}
+                    href={article.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     title={article.title}
-                    onClick={() => router.push(`/story?q=${encodeURIComponent(article.title)}`)}
                     className="text-xs px-3 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/[0.04] text-amber-300/70 hover:text-amber-200 hover:border-amber-400/40 hover:bg-amber-400/[0.08] transition-all max-w-[220px] truncate"
                   >
                     {article.title}
-                  </button>
+                  </a>
                 ))}
               </div>
             )}
