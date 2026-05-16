@@ -9,6 +9,9 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
+const ADMIN_EMAIL = 'lucio.ciraci94@gmail.com';
+const FREE_LIMIT = 5;
+
 async function getUserFromRequest(req: NextRequest) {
   const token = req.headers.get('authorization')?.replace('Bearer ', '');
   if (!token) return null;
@@ -24,6 +27,43 @@ export async function POST(request: NextRequest) {
   const user = await getUserFromRequest(request);
   if (!user) {
     return NextResponse.json({ error: 'Login required to use Cruxly Analysis.' }, { status: 401 });
+  }
+
+  // Usage limit — admin is exempt
+  if (user.email !== ADMIN_EMAIL) {
+    const { getSupabaseClient } = await import('@/lib/supabase');
+    const db = getSupabaseClient();
+    if (db) {
+      // Count past analyses for this user
+      const { count: usedCount } = await db
+        .from('user_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('event', 'analysis');
+
+      if ((usedCount ?? 0) >= FREE_LIMIT) {
+        // Check paid credits
+        const { data: creditsRow } = await db
+          .from('user_credits')
+          .select('credits')
+          .eq('user_id', user.id)
+          .single();
+
+        const paid = creditsRow?.credits ?? 0;
+        if (paid <= 0) {
+          return NextResponse.json(
+            { error: 'limit_reached', message: `You've used all ${FREE_LIMIT} free analyses.` },
+            { status: 402 }
+          );
+        }
+
+        // Deduct 1 paid credit
+        await db
+          .from('user_credits')
+          .update({ credits: paid - 1, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id);
+      }
+    }
   }
 
   try {

@@ -8,6 +8,7 @@ import AdBanner from '@/components/AdBanner';
 import { SkeletonGrid, SkeletonBiasBar } from '@/components/SkeletonCard';
 import { useAuth } from '@/hooks/useAuth';
 import AuthModal from '@/components/AuthModal';
+import BuyCreditsModal from '@/components/BuyCreditsModal';
 
 function timeAgo(dateString: string): string {
   const now = Date.now();
@@ -282,6 +283,7 @@ export default function StoryContent() {
     biasDistribution: Record<string, number>;
   } | null>(null);
   const [showAuth, setShowAuth] = useState(false);
+  const [showBuyCredits, setShowBuyCredits] = useState(false);
   const { user, session } = useAuth();
 
   useEffect(() => {
@@ -336,6 +338,7 @@ export default function StoryContent() {
       if (!response.ok) {
         const errorData = await response.json();
         if (response.status === 401) { setShowAuth(true); return; }
+        if (response.status === 402) { setShowBuyCredits(true); return; }
         throw new Error(errorData.error || 'Failed to analyze articles');
       }
       const data = await response.json();
@@ -875,6 +878,13 @@ export default function StoryContent() {
         <AuthModal
           onClose={() => setShowAuth(false)}
           onSuccess={() => setShowAuth(false)}
+        />
+      )}
+
+      {showBuyCredits && session && (
+        <BuyCreditsModal
+          session={session}
+          onClose={() => setShowBuyCredits(false)}
         />
       )}
     </div>
