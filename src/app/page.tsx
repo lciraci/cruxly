@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Landmark, TrendingUp, Cpu, Globe, ArrowRight } from 'lucide-react';
 import HowItWorks from '@/components/HowItWorks';
 import SpectrumBar from '@/components/SpectrumBar';
+import AuthModal from '@/components/AuthModal';
+import { useAuth } from '@/hooks/useAuth';
 
 interface LocalArticle {
   title: string;
@@ -38,7 +40,10 @@ export default function Home() {
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'denied' | 'error'>('idle');
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [localArticles, setLocalArticles] = useState<{ title: string; url: string }[]>([]);
+  const [showAuth, setShowAuth] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const router = useRouter();
+  const { user, session } = useAuth();
 
   const saveLocation = (value: string) => {
     setLocation(value);
@@ -62,6 +67,44 @@ export default function Home() {
       })
       .catch(() => {});
   }, [location]);
+
+  // Gate any action behind auth — if logged out, show modal and queue the action.
+  const requireAuth = useCallback((action: () => void) => {
+    if (user) {
+      action();
+    } else {
+      setPendingAction(() => action);
+      setShowAuth(true);
+    }
+  }, [user]);
+
+  const handleAuthSuccess = () => {
+    setShowAuth(false);
+    if (pendingAction) {
+      pendingAction();
+      setPendingAction(null);
+    }
+  };
+
+  // Track a search event server-side via the events API.
+  const trackSearch = useCallback((query: string, source: string) => {
+    if (!session?.access_token) return;
+    fetch('/api/events', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ event: 'search', data: { query, source } }),
+    }).catch(() => {});
+  }, [session]);
+
+  const navigate = useCallback((url: string, query: string, source: string) => {
+    requireAuth(() => {
+      trackSearch(query, source);
+      router.push(url);
+    });
+  }, [requireAuth, trackSearch, router]);
 
   const detectLocation = () => {
     if (!navigator.geolocation) { setGeoStatus('error'); return; }
@@ -91,7 +134,9 @@ export default function Home() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) router.push(`/story?q=${encodeURIComponent(searchQuery.trim())}`);
+    const q = searchQuery.trim();
+    if (!q) return;
+    navigate(`/story?q=${encodeURIComponent(q)}`, q, 'homepage-search');
   };
 
   const handleWaitlist = async (e: React.FormEvent) => {
@@ -134,7 +179,7 @@ export default function Home() {
             </h2>
             <p className="text-lg text-zinc-400">
               Search any topic and instantly compare how 30+ outlets across the political spectrum cover it—
-              <span className="text-zinc-300 font-semibold"> left, center, and right</span>.
+              <span className="text-zinc-300 font-semibold"> liberal, balanced, and conservative</span>.
             </p>
           </div>
 
@@ -166,7 +211,7 @@ export default function Home() {
               {POPULAR_SEARCHES.map((q) => (
                 <button
                   key={q}
-                  onClick={() => router.push(`/story?q=${encodeURIComponent(q)}`)}
+                  onClick={() => navigate(`/story?q=${encodeURIComponent(q)}`, q, 'popular-search')}
                   className="text-xs px-3 py-1.5 rounded-full border border-white/[0.08] bg-white/[0.03] text-zinc-400 hover:text-zinc-100 hover:border-white/[0.16] hover:bg-white/[0.06] transition-all"
                 >
                   {q}
@@ -185,16 +230,14 @@ export default function Home() {
                   Near {location.split(',')[0].trim()}:
                 </span>
                 {localArticles.map((article) => (
-                  <a
+                  <button
                     key={article.url}
-                    href={article.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                    onClick={() => requireAuth(() => window.open(article.url, '_blank', 'noopener,noreferrer'))}
                     title={article.title}
                     className="text-xs px-3 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/[0.04] text-amber-300/70 hover:text-amber-200 hover:border-amber-400/40 hover:bg-amber-400/[0.08] transition-all max-w-[220px] truncate"
                   >
                     {article.title}
-                  </a>
+                  </button>
                 ))}
               </div>
             )}
@@ -317,7 +360,7 @@ export default function Home() {
             {TOP_CATEGORIES.map(({ label, query, Icon, desc }) => (
               <button
                 key={label}
-                onClick={() => router.push(`/story?q=${encodeURIComponent(query)}`)}
+                onClick={() => navigate(`/story?q=${encodeURIComponent(query)}`, query, 'category')}
                 className="group flex flex-col gap-5 p-6 rounded-2xl border border-white/[0.07] bg-white/[0.02] hover:bg-white/[0.04] hover:border-amber-400/25 transition-all text-left"
               >
                 <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center group-hover:bg-amber-400/15 group-hover:border-amber-400/40 transition-all">
@@ -337,7 +380,7 @@ export default function Home() {
           {/* Browse all CTA */}
           <div className="flex justify-center">
             <button
-              onClick={() => router.push('/topics')}
+              onClick={() => requireAuth(() => router.push('/topics'))}
               className="group flex items-center gap-2 px-6 py-3 rounded-xl border border-white/[0.10] bg-white/[0.03] hover:border-amber-400/40 hover:bg-amber-400/5 text-sm font-semibold text-zinc-300 hover:text-amber-400 transition-all duration-200"
             >
               Browse all topics
@@ -405,6 +448,14 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* Auth modal */}
+      {showAuth && (
+        <AuthModal
+          onClose={() => { setShowAuth(false); setPendingAction(null); }}
+          onSuccess={handleAuthSuccess}
+        />
+      )}
     </div>
   );
 }
