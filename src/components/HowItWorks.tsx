@@ -1,4 +1,4 @@
-import { MapPin, Search, BarChart2, BrainCircuit, LucideIcon } from 'lucide-react';
+import { MapPin, Search, BarChart2, BrainCircuit, Dna, LucideIcon } from 'lucide-react';
 
 interface HowItWorksStep {
   step: string;
@@ -67,6 +67,37 @@ export default function HowItWorks() {
               <p className="text-sm text-zinc-400 leading-relaxed">{desc}</p>
             </div>
           ))}
+        </div>
+
+        {/* Story DNA spotlight */}
+        <div className="mt-20 max-w-3xl mx-auto rounded-2xl border border-amber-400/15 bg-amber-400/[0.04] p-8 sm:p-10">
+          <div className="flex items-start gap-4 mb-6">
+            <div className="w-10 h-10 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center shrink-0">
+              <Dna size={18} className="text-amber-400/80" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold tracking-widest text-amber-400/60 uppercase mb-1">Unique to Cruxly</p>
+              <h3 className="text-xl font-bold text-zinc-100">Story DNA — track how narratives evolve</h3>
+            </div>
+          </div>
+          <p className="text-zinc-400 text-sm leading-relaxed mb-6">
+            Run Cruxly Analysis on the same topic more than once and we build a timeline of how the story changes over time.
+            Which facts moved from disputed to consensus? What did sources quietly drop? What&apos;s suddenly being challenged?
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            {[
+              { symbol: '+', color: 'text-emerald-400', bg: 'bg-emerald-500/[0.07] border-emerald-500/20', label: 'New consensus', desc: 'Claims now agreed by multiple sources' },
+              { symbol: '−', color: 'text-rose-400',    bg: 'bg-rose-500/[0.07] border-rose-500/20',    label: 'Dropped',        desc: 'Facts sources quietly stopped reporting' },
+              { symbol: '!', color: 'text-amber-400',   bg: 'bg-amber-500/[0.07] border-amber-500/20',  label: 'Newly disputed', desc: 'Claims now being questioned' },
+              { symbol: '✓', color: 'text-blue-400',    bg: 'bg-blue-500/[0.07] border-blue-500/20',    label: 'Resolved',       desc: 'Disputes sources now agree on' },
+            ].map(({ symbol, color, bg, label, desc }) => (
+              <div key={label} className={`rounded-lg border ${bg} p-3`}>
+                <span className={`text-base font-black ${color}`}>{symbol}</span>
+                <p className={`font-semibold mt-1 mb-0.5 ${color}`}>{label}</p>
+                <p className="text-zinc-500 leading-snug">{desc}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
