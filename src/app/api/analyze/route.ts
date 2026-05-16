@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     {
       "claim": "string",
       "sourceCount": number,
-      "sources": ["source names"],
+      "sources": ["source names — plain name only, e.g. 'BBC News', never add index numbers"],
       "confidence": "high" | "medium" | "low"
     }
   ],
@@ -71,14 +71,14 @@ export async function POST(request: NextRequest) {
     {
       "claim": "string",
       "sourceCount": number,
-      "sources": ["source names"],
+      "sources": ["source names — plain name only, e.g. 'The Guardian', never add index numbers"],
       "confidence": "high" | "medium" | "low"
     }
   ],
   "sourceAnalyses": [
     {
       "sourceId": number,
-      "sourceName": "string",
+      "sourceName": "string — use ONLY the source field value, never append article topic or index",
       "factualClaims": ["string"],
       "biasIndicators": [
         {
@@ -93,14 +93,26 @@ export async function POST(request: NextRequest) {
       "score": number
     }
   ],
-  "summary": "string"
+  "summary": "string",
+  "perspectives": {
+    "left": "string or null — 2-3 sentences on how left/center-left sources frame this story: their emphasis, narrative, and tone. null if no such sources.",
+    "center": "string or null — same for center sources. null if none.",
+    "right": "string or null — same for right/center-right sources. null if none."
+  },
+  "keyOmissions": {
+    "left": ["specific fact or context left-leaning sources omit but others cover"],
+    "center": ["specific fact or context center sources omit but others cover"],
+    "right": ["specific fact or context right-leaning sources omit but others cover"]
+  }
 }
 
 Analysis rules:
-1. CONSENSUS FACTS: Factual claims that appear in multiple sources (especially across different biases). List which sources mention each fact and your confidence level.
-2. DISPUTED CLAIMS: Claims that only appear in some sources or are framed very differently across sources.
-3. SOURCE-BY-SOURCE ANALYSIS: For each article provide key factual claims, bias indicators (emotional language, framing, omissions, source selection), emotional tone, facts it omits that other sources include, and a score (0-100) for factual accuracy and completeness on this specific story.
-4. SUMMARY: A neutral, fact-based summary synthesizing what we can confidently know from these sources.
+1. CONSENSUS FACTS: Factual claims that appear in multiple sources (especially across different biases). List which sources by plain name only (no numbers).
+2. DISPUTED CLAIMS: Claims that only appear in some sources or are framed very differently. Source names only — never append article indices.
+3. SOURCE-BY-SOURCE ANALYSIS: For each article provide key factual claims, bias indicators, emotional tone, omissions, and a score (0-100). Use ONLY the provided "source" field value as sourceName.
+4. SUMMARY: A neutral, fact-based summary synthesizing what we can confidently know.
+5. PERSPECTIVES: Group as left-leaning (bias: left or center-left), center (bias: center), right-leaning (bias: center-right or right). Write 2-3 sentences on how each group frames the story — their emphasis, angle, and what they stress. null if that group has no articles.
+6. KEY OMISSIONS BY BIAS: For each group, list 2-4 SPECIFIC facts or context points they leave out while other groups cover them. Be concrete — not vague phrases like "nuance" but actual missing information.
 
 Return ONLY valid JSON — no markdown, no explanation.`;
 
@@ -153,11 +165,29 @@ ${JSON.stringify(articleSummaries, null, 2)}`;
       );
     }
 
-    // Map sourceId back to article data
-    const sourceAnalyses: SourceAnalysis[] = analysisData.sourceAnalyses.map((sa: any) => ({
-      ...sa,
-      sourceId: articles[sa.sourceId].source.id || articles[sa.sourceId].source.name,
-      articleUrl: articles[sa.sourceId].url,
+    // Strip any "(N)" suffixes Claude appends to source names in claims
+    const cleanSources = (sources: any[]) =>
+      (sources ?? []).map((s: string) => String(s).replace(/\s*\(\d+\)\s*$/, '').trim()).filter(Boolean);
+
+    // Map sourceId back to article data; override sourceName with the real publisher name
+    const sourceAnalyses: SourceAnalysis[] = analysisData.sourceAnalyses.map((sa: any) => {
+      const article = articles[sa.sourceId];
+      return {
+        ...sa,
+        sourceName: article.source.name,
+        sourceId: article.source.id || article.source.name,
+        articleUrl: article.url,
+      };
+    });
+
+    // Clean source lists in consensus / disputed claims
+    const consensusFacts = (analysisData.consensusFacts ?? []).map((f: any) => ({
+      ...f,
+      sources: cleanSources(f.sources),
+    }));
+    const disputedClaims = (analysisData.disputedClaims ?? []).map((c: any) => ({
+      ...c,
+      sources: cleanSources(c.sources),
     }));
 
     const now = new Date().toISOString();
@@ -185,13 +215,15 @@ ${JSON.stringify(articleSummaries, null, 2)}`;
 
     const analysis: StoryAnalysis = {
       topic,
-      consensusFacts: analysisData.consensusFacts,
-      disputedClaims: analysisData.disputedClaims,
+      consensusFacts,
+      disputedClaims,
       sourceAnalyses,
       summary: analysisData.summary,
       timestamp: now,
       drift,
       snapshotCount: existingSnapshots.length + 1,
+      perspectives: analysisData.perspectives ?? undefined,
+      keyOmissions: analysisData.keyOmissions ?? undefined,
     };
 
     trackEvent('analysis', {

@@ -158,6 +158,40 @@ function StoryDNA({ drift, topic, snapshotCount }: { drift: NarrativeDrift; topi
   );
 }
 
+function OmissionsSection({ keyOmissions }: { keyOmissions?: import('@/types/analysis').KeyOmissionsByBias }) {
+  if (!keyOmissions) return null;
+  const groups = [
+    { key: 'left',   label: 'Left media',   dot: 'bg-blue-700', text: 'text-blue-400', border: 'border-blue-700/20', bg: 'bg-blue-700/[0.05]',  items: keyOmissions.left   },
+    { key: 'center', label: 'Center media', dot: 'bg-zinc-400', text: 'text-zinc-400', border: 'border-zinc-500/20', bg: 'bg-zinc-500/[0.05]',  items: keyOmissions.center },
+    { key: 'right',  label: 'Right media',  dot: 'bg-red-600',  text: 'text-red-400',  border: 'border-red-600/20',  bg: 'bg-red-600/[0.05]',   items: keyOmissions.right  },
+  ].filter(g => g.items?.length > 0);
+  if (groups.length === 0) return null;
+  return (
+    <div className="bg-white/[0.03] rounded-xl border border-white/[0.07] p-5 sm:p-6">
+      <h2 className="text-base font-bold text-zinc-100 mb-1">What they&apos;re not telling you</h2>
+      <p className="text-xs text-zinc-600 mb-4">Specific facts each side leaves out while others cover them</p>
+      <div className="space-y-3">
+        {groups.map(g => (
+          <div key={g.key} className={`rounded-lg border ${g.border} ${g.bg} p-4`}>
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className={`w-2 h-2 rounded-full shrink-0 ${g.dot}`} />
+              <span className={`text-xs font-bold uppercase tracking-widest ${g.text}`}>{g.label} omits:</span>
+            </div>
+            <ul className="space-y-1.5">
+              {g.items.map((item, i) => (
+                <li key={i} className="text-sm text-zinc-300 flex gap-2">
+                  <span className="text-zinc-600 shrink-0 mt-0.5">·</span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function StoryLoading() {
   return (
     <div className="min-h-screen bg-[#0d1117]">
@@ -623,6 +657,46 @@ export default function StoryContent() {
               <h2 className="text-base font-bold text-zinc-100 mb-3">AI Summary</h2>
               <p className="text-zinc-300 leading-relaxed text-sm sm:text-base">{analysis.summary}</p>
             </div>
+
+            {/* Left / Center / Right perspectives */}
+            {analysis.perspectives && (analysis.perspectives.left || analysis.perspectives.center || analysis.perspectives.right) && (
+              <div className="bg-white/[0.03] rounded-xl border border-white/[0.07] p-5 sm:p-6">
+                <h2 className="text-base font-bold text-zinc-100 mb-1">How each side frames it</h2>
+                <p className="text-xs text-zinc-600 mb-4">Same story, different lens</p>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {analysis.perspectives.left && (
+                    <div className="rounded-lg border border-blue-700/30 bg-blue-700/[0.07] p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-700 shrink-0" />
+                        <span className="text-xs font-bold text-blue-400 uppercase tracking-widest">Left</span>
+                      </div>
+                      <p className="text-sm text-zinc-300 leading-relaxed">{analysis.perspectives.left}</p>
+                    </div>
+                  )}
+                  {analysis.perspectives.center && (
+                    <div className="rounded-lg border border-zinc-500/30 bg-zinc-500/[0.07] p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-2 h-2 rounded-full bg-zinc-400 shrink-0" />
+                        <span className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Center</span>
+                      </div>
+                      <p className="text-sm text-zinc-300 leading-relaxed">{analysis.perspectives.center}</p>
+                    </div>
+                  )}
+                  {analysis.perspectives.right && (
+                    <div className="rounded-lg border border-red-600/30 bg-red-600/[0.07] p-4">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="w-2 h-2 rounded-full bg-red-600 shrink-0" />
+                        <span className="text-xs font-bold text-red-400 uppercase tracking-widest">Right</span>
+                      </div>
+                      <p className="text-sm text-zinc-300 leading-relaxed">{analysis.perspectives.right}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* What they're NOT telling you */}
+            <OmissionsSection keyOmissions={analysis.keyOmissions} />
 
             <AdBanner slot="ANALYSIS_TOP_AD" format="horizontal" />
 

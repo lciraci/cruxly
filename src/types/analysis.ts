@@ -23,6 +23,18 @@ export interface SourceAnalysis {
   score: number; // 0-100, factual accuracy for THIS story
 }
 
+export interface PerspectiveSummaries {
+  left: string | null;   // How left/center-left sources frame the story
+  center: string | null; // How center sources frame it
+  right: string | null;  // How right/center-right sources frame it
+}
+
+export interface KeyOmissionsByBias {
+  left: string[];   // Facts left-leaning sources don't mention
+  center: string[]; // Facts center sources don't mention
+  right: string[];  // Facts right-leaning sources don't mention
+}
+
 export interface StoryAnalysis {
   topic: string;
   consensusFacts: FactClaim[]; // Facts most/all sources agree on
@@ -32,6 +44,8 @@ export interface StoryAnalysis {
   timestamp: string;
   drift?: NarrativeDrift;      // Present when a previous snapshot exists
   snapshotCount?: number;      // Total times this story has been analyzed
+  perspectives?: PerspectiveSummaries;
+  keyOmissions?: KeyOmissionsByBias;
 }
 
 export interface StorySnapshot {
