@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       httpClient: Stripe.createFetchHttpClient(),
     });
-    const appUrl = 'https://cruxly-woad.vercel.app';
+    const appUrl = req.headers.get('origin') || 'https://cruxly.dev';
 
     console.log('Checkout: key prefix =', process.env.STRIPE_SECRET_KEY?.slice(0, 12));
 
