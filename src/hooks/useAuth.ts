@@ -22,7 +22,7 @@ export function useAuth() {
       setLoading(false);
     })();
 
-    const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange((_event: any, session) => {
+    const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange((_event: any, session: any) => {
       setSession(session);
       setUser(session?.user ?? null);
     });
