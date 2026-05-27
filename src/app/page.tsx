@@ -177,11 +177,14 @@ export default function Home() {
           {/* Headline & Subheading */}
           <div className="text-center mb-12 max-w-3xl mx-auto">
             <h2 className="text-3xl sm:text-4xl font-bold text-zinc-100 mb-4">
-              See Every Side of the Story
+              See Every Side of Today's Story
             </h2>
             <p className="text-lg text-zinc-400">
-              Search any topic and instantly compare how 30+ outlets across the political spectrum cover it—
+              Search breaking news and recent events to compare how 30+ outlets across the political spectrum cover it—
               <span className="text-zinc-300 font-semibold"> liberal, balanced, and conservative</span>.
+            </p>
+            <p className="text-sm text-zinc-500 mt-3">
+              Coverage of news from the last 7 days. Great for breaking stories and current events.
             </p>
           </div>
 
