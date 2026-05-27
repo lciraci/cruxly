@@ -15,11 +15,12 @@ export function useAuth() {
       return;
     }
 
-    supabaseBrowser.auth.getSession().then(({ data }) => {
+    (async () => {
+      const { data } = await supabaseBrowser.auth.getSession();
       setSession(data.session);
       setUser(data.session?.user ?? null);
       setLoading(false);
-    });
+    })();
 
     const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange((_event, session) => {
       setSession(session);
