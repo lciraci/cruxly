@@ -17,7 +17,10 @@ export default function AboutPage() {
             One story.<br />Every side.
           </h1>
           <p className="text-lg text-zinc-400 max-w-xl leading-relaxed">
-            Cruxly cross-references 30+ news sources across the political spectrum and uses AI to show you what they agree on, where they diverge, and what none of them are saying.
+            Cruxly cross-references 30+ news sources across the political spectrum for breaking and recent news and uses AI to show you what they agree on, where they diverge, and what none of them are saying.
+          </p>
+          <p className="text-sm text-zinc-500 mt-3">
+            Designed for understanding today's stories across all viewpoints. Coverage available for the last 7 days.
           </p>
         </div>
 

@@ -10,13 +10,19 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabaseBrowser.auth.getSession().then(({ data }) => {
+    if (!supabaseBrowser) {
+      setLoading(false);
+      return;
+    }
+
+    (async () => {
+      const { data } = await supabaseBrowser.auth.getSession();
       setSession(data.session);
       setUser(data.session?.user ?? null);
       setLoading(false);
-    });
+    })();
 
-    const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabaseBrowser.auth.onAuthStateChange((_event: any, session: any) => {
       setSession(session);
       setUser(session?.user ?? null);
     });
@@ -24,7 +30,11 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = () => supabaseBrowser.auth.signOut();
+  const signOut = async () => {
+    if (supabaseBrowser) {
+      await supabaseBrowser.auth.signOut();
+    }
+  };
 
   return { user, session, loading, signOut };
 }

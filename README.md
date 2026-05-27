@@ -1,6 +1,6 @@
 # Cruxly - The Crux of the Story
 
-A news aggregation platform that compares coverage from multiple sources across the political spectrum, powered by AI for fact extraction, bias detection, and source scoring.
+A **breaking & recent news** aggregation platform that compares coverage from multiple sources across the political spectrum, powered by AI for fact extraction, bias detection, and source scoring. Get all sides of today's stories.
 
 ## The Problem
 
@@ -24,13 +24,14 @@ Cruxly automates multi-source news comparison:
 
 ## Features
 
+- **Breaking & Recent News**: Coverage of news from the last 7 days across 30+ trusted sources
 - **Multi-Source Aggregation**: Compare 30+ trusted news sources (US, UK, Europe)
 - **AI-Powered Analysis**:
   - Fact extraction
   - Bias detection (emotional language, omissions, framing)
   - Source scoring (factual accuracy per story)
 - **Dual View**: Raw sources + AI synthesis
-- **Search & Trending**: Find specific topics or browse trending stories
+- **Search & Trending**: Find current topics or browse what's trending right now
 
 ## Tech Stack
 
@@ -112,12 +113,19 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 See `src/config/sources.ts` for the complete list with bias ratings and trust scores.
 
+## Scope & Limitations
+
+**Current Focus**: Breaking & recent news (last 7 days)
+- Optimized for understanding what's happening right now across the political spectrum
+- Not suitable for historical news research or archival lookups
+- Future: Consider expanding to 1-month+ archives (requires backend changes)
+
 ## API Rate Limits
 
 **NewsAPI Free Tier:**
 - 100 requests per day
 - 15 requests per 15 minutes
-- Only articles from last 30 days
+- Articles from last 30 days available (Cruxly uses last 7 days)
 
 **Anthropic API:**
 - Pay-as-you-go pricing
