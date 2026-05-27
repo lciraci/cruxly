@@ -10,6 +10,11 @@ export function useAuth() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!supabaseBrowser) {
+      setLoading(false);
+      return;
+    }
+
     supabaseBrowser.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setUser(data.session?.user ?? null);
@@ -24,7 +29,11 @@ export function useAuth() {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = () => supabaseBrowser.auth.signOut();
+  const signOut = async () => {
+    if (supabaseBrowser) {
+      await supabaseBrowser.auth.signOut();
+    }
+  };
 
   return { user, session, loading, signOut };
 }
