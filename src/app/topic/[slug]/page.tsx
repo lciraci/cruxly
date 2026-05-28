@@ -95,8 +95,33 @@ export default async function TopicPage({
   const query = slugToQuery(slug);
 
   return (
-    <Suspense fallback={<StoryLoading />}>
-      <StoryContent initialQuery={query} />
-    </Suspense>
+    <div>
+      {/* Static SEO content for search engines */}
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-zinc-100 mb-4">{query}</h1>
+        <p className="text-lg text-zinc-400 mb-8">
+          Comparing how left, center, and right media outlets cover {query}. See what facts they share and what they leave out across 30+ news sources.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+          <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+            <div className="text-sm font-semibold text-emerald-400 mb-2">Liberal Sources</div>
+            <p className="text-xs text-emerald-300">Left-leaning outlets and their take on {query}</p>
+          </div>
+          <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <div className="text-sm font-semibold text-blue-400 mb-2">Center Sources</div>
+            <p className="text-xs text-blue-300">Mainstream and neutral outlets covering {query}</p>
+          </div>
+          <div className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/20">
+            <div className="text-sm font-semibold text-rose-400 mb-2">Conservative Sources</div>
+            <p className="text-xs text-rose-300">Right-leaning outlets reporting on {query}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Interactive content (client-side) */}
+      <Suspense fallback={<StoryLoading />}>
+        <StoryContent initialQuery={query} />
+      </Suspense>
+    </div>
   );
 }
