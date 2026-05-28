@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Allow: /topic/
+Allow: /api/og
+Disallow: /api/credits
+Disallow: /api/news/
+
+Sitemap: https://cruxly.dev/api/sitemap.xml

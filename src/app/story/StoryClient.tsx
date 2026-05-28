@@ -263,10 +263,10 @@ export function StoryLoading() {
   );
 }
 
-export default function StoryContent() {
+export default function StoryContent({ initialQuery }: { initialQuery?: string } = {}) {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const query = searchParams.get('q');
+  const query = initialQuery || searchParams.get('q');
 
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
