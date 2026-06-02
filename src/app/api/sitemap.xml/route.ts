@@ -52,6 +52,7 @@ export async function GET() {
       { url: '/about', priority: '0.8', changefreq: 'monthly' },
       { url: '/privacy', priority: '0.7', changefreq: 'monthly' },
       { url: '/topics', priority: '0.9', changefreq: 'daily' },
+      { url: '/faq', priority: '0.8', changefreq: 'monthly' },
     ];
 
     for (const page of staticPages) {
@@ -60,6 +61,17 @@ export async function GET() {
       xml += `    <lastmod>${now}</lastmod>\n`;
       xml += `    <changefreq>${page.changefreq}</changefreq>\n`;
       xml += `    <priority>${page.priority}</priority>\n`;
+      xml += `  </url>\n`;
+    }
+
+    // Category pages (5 categories: politics, economy, technology, world, health)
+    const categories = ['politics', 'economy', 'technology', 'world', 'health'];
+    for (const category of categories) {
+      xml += `  <url>\n`;
+      xml += `    <loc>${baseUrl}/category/${category}</loc>\n`;
+      xml += `    <lastmod>${now}</lastmod>\n`;
+      xml += `    <changefreq>daily</changefreq>\n`;
+      xml += `    <priority>0.9</priority>\n`;
       xml += `  </url>\n`;
     }
 
