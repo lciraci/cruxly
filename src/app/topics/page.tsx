@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation';
 import { EnrichedArticle } from '@/types/news';
 import TopicCard from '@/components/TopicCard';
 
+// Helper to convert query to URL slug
+function queryToSlug(query: string): string {
+  return query
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+}
+
 const CATEGORIES = [
   { label: 'Politics', query: 'US politics Congress' },
   { label: 'Economy', query: 'global economy markets' },
@@ -142,7 +150,7 @@ export default function TopicsPage() {
               )}
 
               <button
-                onClick={() => router.push(`/story?q=${encodeURIComponent('technology AI innovation')}`)}
+                onClick={() => router.push(`/topic/${queryToSlug('technology AI innovation')}`)}
                 className="mt-5 px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-zinc-900 font-semibold rounded-lg transition-colors text-sm"
               >
                 See all technology articles
@@ -164,7 +172,7 @@ export default function TopicsPage() {
                 articles={categoryData[cat.label]?.articles || []}
                 biasDistribution={categoryData[cat.label]?.diversity?.biasDistribution}
                 isLoading={categoryData[cat.label]?.loading}
-                onViewAll={query => router.push(`/story?q=${encodeURIComponent(query)}`)}
+                onViewAll={query => router.push(`/topic/${queryToSlug(query)}`)}
               />
             ))}
           </div>

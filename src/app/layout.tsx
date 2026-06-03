@@ -5,7 +5,7 @@ import Script from "next/script";
 import Navbar from "@/components/Navbar";
 import "./globals.css";
 
-const SITE_URL = "https://cruxly-woad.vercel.app";
+const SITE_URL = "https://cruxly.dev";
 const DESCRIPTION =
   "Search any news topic and instantly see how left, center, and right media frame it — what facts they share and what they leave out.";
 
@@ -33,6 +33,9 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
     googleBot: { index: true, follow: true },
+  },
+  verification: {
+    google: "googlef1e0b3b685b304e1",
   },
 };
 

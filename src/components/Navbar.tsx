@@ -6,6 +6,14 @@ import { LogOut } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import AuthModal from '@/components/AuthModal';
 
+// Helper to convert query to URL slug
+function queryToSlug(query: string): string {
+  return query
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]/g, '');
+}
+
 export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -18,7 +26,8 @@ export default function Navbar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      router.push(`/story?q=${encodeURIComponent(searchQuery.trim())}`);
+      const slug = queryToSlug(searchQuery.trim());
+      router.push(`/topic/${slug}`);
       setSearchQuery('');
       setMobileMenuOpen(false);
     }
