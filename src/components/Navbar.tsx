@@ -65,6 +65,8 @@ export default function Navbar() {
 
             {/* Desktop: Nav */}
             <div className="hidden md:flex items-center gap-1">
+              <NavLink href="/topics" label="Topics" currentPath={pathname} />
+              <NavLink href="/faq" label="FAQ" currentPath={pathname} />
               <NavLink href="/about" label="About" currentPath={pathname} />
               <NavLink href="/privacy" label="Privacy" currentPath={pathname} />
 
@@ -136,6 +138,8 @@ export default function Navbar() {
               )}
               <div className="flex flex-col gap-1">
                 <MobileNavLink href="/" label="Home" currentPath={pathname} onClick={() => setMobileMenuOpen(false)} />
+                <MobileNavLink href="/topics" label="Topics" currentPath={pathname} onClick={() => setMobileMenuOpen(false)} />
+                <MobileNavLink href="/faq" label="FAQ" currentPath={pathname} onClick={() => setMobileMenuOpen(false)} />
                 <MobileNavLink href="/about" label="About" currentPath={pathname} onClick={() => setMobileMenuOpen(false)} />
                 <MobileNavLink href="/privacy" label="Privacy" currentPath={pathname} onClick={() => setMobileMenuOpen(false)} />
                 {user ? (
