@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import StoryContent, { StoryLoading } from '@/app/story/StoryClient';
+import StoryContent, { StoryLoading, type StoryDiversity } from '@/app/story/StoryClient';
+import type { EnrichedArticle } from '@/types/news';
 
 // Convert slug to readable topic name
 // Example: 'trump-tariffs' → 'Trump Tariffs'
@@ -9,6 +10,84 @@ function slugToQuery(slug: string): string {
     .split('-')
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
+}
+
+function getBaseUrl(): string {
+  return process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000';
+}
+
+// Fetch the diverse article set once, server-side. ISR-cached for 24h
+// (revalidate below), so this runs at most once per topic per day — and it
+// doubles as the seed for the interactive comparison, so the client doesn't
+// re-fetch on these pages.
+async function fetchTopicData(query: string): Promise<{
+  articles: EnrichedArticle[];
+  diversity: StoryDiversity;
+} | null> {
+  try {
+    const res = await fetch(
+      `${getBaseUrl()}/api/news/search?q=${encodeURIComponent(query)}&pageSize=12`,
+      { next: { revalidate: 86400 } }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!data.articles?.length) return null;
+    return { articles: data.articles, diversity: data.diversity };
+  } catch {
+    return null;
+  }
+}
+
+// Three spectrum buckets, collapsed from the five bias leanings.
+const BUCKETS: {
+  key: 'liberal' | 'center' | 'conservative';
+  label: string;
+  biases: string[];
+  cls: string;
+  title: string;
+  body: string;
+  fallback: (q: string) => string;
+}[] = [
+  {
+    key: 'liberal',
+    label: 'Liberal Sources',
+    biases: ['left', 'center-left'],
+    cls: 'bg-emerald-500/10 border-emerald-500/20',
+    title: 'text-emerald-400',
+    body: 'text-emerald-300',
+    fallback: q => `Left-leaning outlets and their take on ${q}`,
+  },
+  {
+    key: 'center',
+    label: 'Center Sources',
+    biases: ['center'],
+    cls: 'bg-blue-500/10 border-blue-500/20',
+    title: 'text-blue-400',
+    body: 'text-blue-300',
+    fallback: q => `Mainstream and neutral outlets covering ${q}`,
+  },
+  {
+    key: 'conservative',
+    label: 'Conservative Sources',
+    biases: ['center-right', 'right'],
+    cls: 'bg-rose-500/10 border-rose-500/20',
+    title: 'text-rose-400',
+    body: 'text-rose-300',
+    fallback: q => `Right-leaning outlets reporting on ${q}`,
+  },
+];
+
+function bucketsFor(articles: EnrichedArticle[]) {
+  return BUCKETS.map(b => {
+    const inBucket = articles.filter(a => a.sourceBias && b.biases.includes(a.sourceBias));
+    return {
+      ...b,
+      outlets: [...new Set(inBucket.map(a => a.source.name))],
+      headline: inBucket[0]?.title,
+    };
+  });
 }
 
 export async function generateMetadata({
@@ -52,11 +131,7 @@ export async function generateStaticParams() {
   try {
     // Fetch trending searches at build time
     // This pre-generates the top 10 trending topics as static pages
-    const baseUrl = process.env.VERCEL_URL
-      ? `https://${process.env.VERCEL_URL}`
-      : 'http://localhost:3000';
-
-    const res = await fetch(`${baseUrl}/api/trending`, {
+    const res = await fetch(`${getBaseUrl()}/api/trending`, {
       next: { revalidate: 3600 }
     });
 
@@ -93,35 +168,46 @@ export default async function TopicPage({
 }) {
   const { slug } = await params;
   const query = slugToQuery(slug);
+  const data = await fetchTopicData(query);
+  const cards = bucketsFor(data?.articles ?? []);
 
   return (
-    <div>
-      {/* Static SEO content for search engines */}
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold text-zinc-100 mb-4">{query}</h1>
-        <p className="text-lg text-zinc-400 mb-8">
-          Comparing how left, center, and right media outlets cover {query}. See what facts they share and what they leave out across 30+ news sources.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-            <div className="text-sm font-semibold text-emerald-400 mb-2">Liberal Sources</div>
-            <p className="text-xs text-emerald-300">Left-leaning outlets and their take on {query}</p>
-          </div>
-          <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <div className="text-sm font-semibold text-blue-400 mb-2">Center Sources</div>
-            <p className="text-xs text-blue-300">Mainstream and neutral outlets covering {query}</p>
-          </div>
-          <div className="p-4 rounded-lg bg-rose-500/10 border border-rose-500/20">
-            <div className="text-sm font-semibold text-rose-400 mb-2">Conservative Sources</div>
-            <p className="text-xs text-rose-300">Right-leaning outlets reporting on {query}</p>
+    <div className="bg-[#0d1117]">
+      {/* The product first — the live comparison across the spectrum. */}
+      <Suspense fallback={<StoryLoading />}>
+        <StoryContent
+          initialQuery={query}
+          initialArticles={data?.articles}
+          initialDiversity={data?.diversity}
+        />
+      </Suspense>
+
+      {/* Supporting context for search engines — secondary, below the comparison. */}
+      <section className="border-t border-white/[0.06]">
+        <div className="container mx-auto px-4 py-10">
+          <h2 className="text-xl font-bold text-zinc-200 mb-2">How outlets cover {query}</h2>
+          <p className="text-sm text-zinc-500 mb-6 max-w-3xl">
+            Comparing how left, center, and right media outlets cover {query}. See which facts they share and what each side leaves out across 30+ news sources.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {cards.map(card => (
+              <div key={card.key} className={`p-4 rounded-lg border ${card.cls}`}>
+                <div className={`text-sm font-semibold mb-2 ${card.title}`}>{card.label}</div>
+                {card.outlets.length > 0 ? (
+                  <>
+                    <p className={`text-xs mb-2 ${card.body}`}>{card.outlets.join(', ')}</p>
+                    {card.headline && (
+                      <p className="text-xs text-zinc-500 italic">&ldquo;{card.headline}&rdquo;</p>
+                    )}
+                  </>
+                ) : (
+                  <p className={`text-xs ${card.body}`}>{card.fallback(query)}</p>
+                )}
+              </div>
+            ))}
           </div>
         </div>
-      </div>
-
-      {/* Interactive content (client-side) */}
-      <Suspense fallback={<StoryLoading />}>
-        <StoryContent initialQuery={query} />
-      </Suspense>
+      </section>
     </div>
   );
 }

@@ -263,14 +263,32 @@ export function StoryLoading() {
   );
 }
 
-export default function StoryContent({ initialQuery }: { initialQuery?: string } = {}) {
+export type StoryDiversity = {
+  uniqueSources: number;
+  sourceNames: string[];
+  biasDistribution: Record<string, number>;
+};
+
+export default function StoryContent({
+  initialQuery,
+  initialArticles,
+  initialDiversity,
+}: {
+  initialQuery?: string;
+  initialArticles?: EnrichedArticle[];
+  initialDiversity?: StoryDiversity | null;
+} = {}) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = initialQuery || searchParams.get('q');
 
-  const [loading, setLoading] = useState(true);
+  // When a server component (e.g. /topic/[slug]) has already fetched the
+  // article set, hydrate from it and skip the client fetch.
+  const seeded = !!(initialArticles && initialArticles.length > 0);
+
+  const [loading, setLoading] = useState(!seeded);
   const [analyzing, setAnalyzing] = useState(false);
-  const [articles, setArticles] = useState<EnrichedArticle[]>([]);
+  const [articles, setArticles] = useState<EnrichedArticle[]>(initialArticles ?? []);
   const [analysis, setAnalysis] = useState<StoryAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errorType, setErrorType] = useState<'search' | 'analysis'>('search');
@@ -278,11 +296,7 @@ export default function StoryContent({ initialQuery }: { initialQuery?: string }
   const [notice, setNotice] = useState<string | null>(null);
   const [clusters, setClusters] = useState<any[]>([]);
   const [clusteringLoading, setClusteringLoading] = useState(false);
-  const [diversity, setDiversity] = useState<{
-    uniqueSources: number;
-    sourceNames: string[];
-    biasDistribution: Record<string, number>;
-  } | null>(null);
+  const [diversity, setDiversity] = useState<StoryDiversity | null>(initialDiversity ?? null);
   const [showAuth, setShowAuth] = useState(false);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
   const [usageKey, setUsageKey] = useState(0);
@@ -290,6 +304,7 @@ export default function StoryContent({ initialQuery }: { initialQuery?: string }
 
   useEffect(() => {
     if (!query) { router.push('/'); return; }
+    if (seeded) return; // already hydrated from server-fetched data
     fetchArticles();
   }, [query]);
 
