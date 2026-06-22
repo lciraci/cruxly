@@ -316,9 +316,13 @@ export default function StoryContent({
       const savedLocation = typeof window !== 'undefined' ? localStorage.getItem('cruxly-location') || '' : '';
       let url = `/api/news/search?q=${encodeURIComponent(query!)}&pageSize=12`;
       if (savedLocation) url += `&location=${encodeURIComponent(savedLocation)}`;
-      // Read session directly from Supabase client — avoids race with React state
+      // Read session directly from Supabase client — avoids race with React state.
+      // supabaseBrowser is null when NEXT_PUBLIC_SUPABASE_* env vars are absent
+      // (e.g. preview deployments) — degrade to an anonymous search, don't crash.
       const { supabaseBrowser } = await import('@/lib/supabase-browser');
-      const { data: { session: currentSession } } = await supabaseBrowser.auth.getSession();
+      const currentSession = supabaseBrowser
+        ? (await supabaseBrowser.auth.getSession()).data.session
+        : null;
       const headers: Record<string, string> = {};
       if (currentSession?.access_token) headers['Authorization'] = `Bearer ${currentSession.access_token}`;
       const response = await fetch(url, { headers });
