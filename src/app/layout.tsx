@@ -1,9 +1,18 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
+import { Oswald } from "next/font/google";
 import Script from "next/script";
 import Navbar from "@/components/Navbar";
 import "./globals.css";
+
+// Condensed display face for bold-newsroom CTAs/headings
+const oswald = Oswald({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  variable: "--font-oswald",
+  display: "swap",
+});
 
 const SITE_URL = "https://cruxly.dev";
 const DESCRIPTION =
@@ -49,7 +58,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased dark`}
+      className={`${GeistSans.variable} ${GeistMono.variable} ${oswald.variable} h-full antialiased dark`}
     >
       <head>
         {/* Google AdSense — only loads when NEXT_PUBLIC_ADSENSE_ID is set */}
