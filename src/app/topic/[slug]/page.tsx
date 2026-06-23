@@ -203,7 +203,12 @@ export default async function TopicPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* Static SEO content — server-rendered for Google */}
+      {/* Interactive comparison first — the live results lead the page */}
+      <Suspense fallback={<StoryLoading />}>
+        <StoryContent initialQuery={query} />
+      </Suspense>
+
+      {/* Static SEO content — server-rendered for Google, below the results */}
       <article className="container mx-auto px-4 py-8 max-w-4xl">
         {/* Breadcrumbs */}
         <nav aria-label="Breadcrumb" className="text-sm text-zinc-500 mb-6">
@@ -423,11 +428,6 @@ export default async function TopicPage({
           </div>
         </section>
       </article>
-
-      {/* Interactive comparison (client-side) */}
-      <Suspense fallback={<StoryLoading />}>
-        <StoryContent initialQuery={query} />
-      </Suspense>
     </div>
   );
 }
