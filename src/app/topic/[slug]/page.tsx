@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import StoryContent, { StoryLoading } from '@/app/story/StoryClient';
+import type { EnrichedArticle } from '@/types/news';
 
 // Convert slug to readable topic name
 // Example: 'trump-tariffs' → 'Trump Tariffs'
@@ -109,6 +110,38 @@ function queryToSlug(q: string): string {
     .replace(/[^a-z0-9-]/g, '');
 }
 
+// Fetch the real outlets currently covering this topic, grouped into the three
+// spectrum buckets. Server-side, ISR-cached 24h, short timeout + safe fallback —
+// if anything fails the boxes keep their static copy and the page is unaffected.
+async function fetchTopicOutlets(
+  query: string
+): Promise<{ left: string[]; center: string[]; right: string[] } | null> {
+  try {
+    const res = await fetch(
+      `https://cruxly.dev/api/news/search?q=${encodeURIComponent(query)}&pageSize=12`,
+      { next: { revalidate: 86400 }, signal: AbortSignal.timeout(4000) }
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const articles: EnrichedArticle[] = data.articles ?? [];
+    if (articles.length === 0) return null;
+    const pick = (biases: string[]) => [
+      ...new Set(
+        articles
+          .filter((a) => a.sourceBias && biases.includes(a.sourceBias))
+          .map((a) => a.source.name)
+      ),
+    ];
+    return {
+      left: pick(['left', 'center-left']),
+      center: pick(['center']),
+      right: pick(['center-right', 'right']),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default async function TopicPage({
   params,
 }: {
@@ -117,6 +150,7 @@ export default async function TopicPage({
   const { slug } = await params;
   const query = slugToQuery(slug);
   const canonicalUrl = `https://cruxly.dev/topic/${slug}`;
+  const outlets = await fetchTopicOutlets(query);
 
   // Related topics (excluding current one)
   const relatedTopics = FALLBACK_RELATED.filter(
@@ -239,6 +273,11 @@ export default async function TopicPage({
             <p className="text-sm text-emerald-300/90 leading-relaxed">
               How MSNBC, CNN, NPR, and the New York Times frame {query}.
             </p>
+            {outlets?.left.length ? (
+              <p className="text-xs text-emerald-300/60 mt-3">
+                Now covering: {outlets.left.join(', ')}
+              </p>
+            ) : null}
           </div>
           <div className="p-5 rounded-lg bg-blue-500/10 border border-blue-500/20">
             <div className="text-sm font-semibold text-blue-400 mb-2">
@@ -247,6 +286,11 @@ export default async function TopicPage({
             <p className="text-sm text-blue-300/90 leading-relaxed">
               How AP, Reuters, BBC, and the Wall Street Journal report {query}.
             </p>
+            {outlets?.center.length ? (
+              <p className="text-xs text-blue-300/60 mt-3">
+                Now covering: {outlets.center.join(', ')}
+              </p>
+            ) : null}
           </div>
           <div className="p-5 rounded-lg bg-rose-500/10 border border-rose-500/20">
             <div className="text-sm font-semibold text-rose-400 mb-2">
@@ -255,6 +299,11 @@ export default async function TopicPage({
             <p className="text-sm text-rose-300/90 leading-relaxed">
               How Fox News, National Review, NY Post, and Washington Examiner cover {query}.
             </p>
+            {outlets?.right.length ? (
+              <p className="text-xs text-rose-300/60 mt-3">
+                Now covering: {outlets.right.join(', ')}
+              </p>
+            ) : null}
           </div>
         </div>
 
