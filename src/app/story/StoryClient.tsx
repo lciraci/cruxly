@@ -225,7 +225,7 @@ function OmissionsSection({ keyOmissions }: { keyOmissions?: import('@/types/ana
   return (
     <div className="bg-white/[0.03] rounded-xl border border-white/[0.07] p-5 sm:p-6">
       <h2 className="text-base font-bold text-zinc-100 mb-1">What they&apos;re not telling you</h2>
-      <p className="text-xs text-zinc-600 mb-4">Specific facts each side leaves out while others cover them</p>
+      <p className="text-xs text-zinc-600 mb-4">Facts one side skips that the others report — bias by omission.</p>
       <div className="space-y-3">
         {groups.map(g => (
           <div key={g.key} className={`rounded-lg border ${g.border} ${g.bg} p-4`}>
@@ -746,7 +746,8 @@ export default function StoryContent({ initialQuery }: { initialQuery?: string }
           <div className="space-y-5">
             {/* Summary */}
             <div className="bg-white/[0.03] rounded-xl border border-white/[0.07] p-5 sm:p-6">
-              <h2 className="text-base font-bold text-zinc-100 mb-3">AI Summary</h2>
+              <h2 className="text-base font-bold text-zinc-100 mb-1">The neutral version</h2>
+              <p className="text-xs text-zinc-600 mb-3">One balanced recap built from every source — your baseline before the spin.</p>
               <p className="text-zinc-300 leading-relaxed text-sm sm:text-base">{analysis.summary}</p>
             </div>
 
@@ -754,7 +755,7 @@ export default function StoryContent({ initialQuery }: { initialQuery?: string }
             {analysis.perspectives && (analysis.perspectives.left || analysis.perspectives.center || analysis.perspectives.right) && (
               <div className="bg-white/[0.03] rounded-xl border border-white/[0.07] p-5 sm:p-6">
                 <h2 className="text-base font-bold text-zinc-100 mb-1">How each side frames it</h2>
-                <p className="text-xs text-zinc-600 mb-4">Same story, different lens</p>
+                <p className="text-xs text-zinc-600 mb-4">The same facts, told three ways — left, center, right.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {analysis.perspectives.left && (
                     <div className="rounded-lg border border-blue-700/30 bg-blue-700/[0.07] p-4">
@@ -798,9 +799,9 @@ export default function StoryContent({ initialQuery }: { initialQuery?: string }
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-                Consensus Facts
+                What all sides agree on
               </h2>
-              <p className="text-xs text-emerald-400/60 mb-4">Reported across multiple sources regardless of bias</p>
+              <p className="text-xs text-emerald-400/60 mb-4">Reported across the spectrum — the facts you can most trust.</p>
               <div className="space-y-3">
                 {analysis.consensusFacts.map((fact, idx) => (
                   <div key={idx} className="bg-white/[0.03] rounded-lg p-3 sm:p-4 border border-white/[0.05]">
@@ -827,9 +828,9 @@ export default function StoryContent({ initialQuery }: { initialQuery?: string }
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
-                  Disputed Claims
+                  Where they disagree
                 </h2>
-                <p className="text-xs text-amber-400/60 mb-4">Reported by some sources but not others</p>
+                <p className="text-xs text-amber-400/60 mb-4">Claims only some outlets report — treat with caution.</p>
                 <div className="space-y-3">
                   {analysis.disputedClaims.map((claim, idx) => (
                     <div key={idx} className="bg-white/[0.03] rounded-lg p-3 sm:p-4 border border-white/[0.05]">
@@ -843,7 +844,8 @@ export default function StoryContent({ initialQuery }: { initialQuery?: string }
 
             {/* Source-by-Source */}
             <div className="bg-white/[0.03] rounded-xl border border-white/[0.07] p-5 sm:p-6">
-              <h2 className="text-base font-bold text-zinc-100 mb-4">Source Analysis</h2>
+              <h2 className="text-base font-bold text-zinc-100 mb-1">Source by source</h2>
+              <p className="text-xs text-zinc-600 mb-4">How each individual outlet covered the story.</p>
               <div className="space-y-2">
                 {analysis.sourceAnalyses.map((sa, idx) => (
                   <details key={idx} className="bg-white/[0.03] rounded-lg border border-white/[0.05] group">
