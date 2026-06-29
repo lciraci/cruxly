@@ -18,6 +18,37 @@ const SITE_URL = "https://cruxly.dev";
 const DESCRIPTION =
   "Search any news topic and instantly see how left, center, and right media frame it — what facts they share and what they leave out.";
 
+// Site-wide structured data: Organization + WebSite (+ SearchAction so Google
+// can show a Cruxly search box directly in the results).
+const SITE_JSONLD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: "Cruxly",
+      url: SITE_URL,
+      sameAs: ["https://twitter.com/cruxly"],
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: "Cruxly",
+      description: DESCRIPTION,
+      publisher: { "@id": `${SITE_URL}/#organization` },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${SITE_URL}/story?q={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -72,6 +103,10 @@ export default function RootLayout({
         )}
       </head>
       <body className="min-h-full flex flex-col">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_JSONLD) }}
+        />
         <Navbar />
         <main className="flex-1">{children}</main>
       </body>
