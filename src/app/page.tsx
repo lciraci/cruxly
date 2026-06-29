@@ -186,12 +186,15 @@ export default function Home() {
 
           {/* Headline & Subheading */}
           <div className="text-center mb-12 max-w-3xl mx-auto">
-            <h2 className="text-3xl sm:text-4xl font-bold text-zinc-100 mb-4">
-              See Every Side of Today's Story
+            <p className="text-xs font-bold tracking-[0.2em] uppercase text-amber-500 mb-5">
+              Media bias, side by side
+            </p>
+            <h2 className="font-[family-name:var(--font-oswald)] font-bold uppercase leading-[0.92] tracking-tight text-zinc-100 text-5xl sm:text-7xl mb-5">
+              One story.<br />
+              <span className="bg-gradient-to-br from-amber-400 to-orange-500 bg-clip-text text-transparent">Every side.</span>
             </h2>
-            <p className="text-lg text-zinc-400">
-              Search breaking news and recent events to compare how 30+ outlets across the political spectrum cover it—
-              <span className="text-zinc-300 font-semibold"> liberal, balanced, and conservative</span>.
+            <p className="text-lg text-zinc-400 max-w-xl mx-auto">
+              Search any story and watch how <span className="text-zinc-200 font-semibold">30+ outlets</span> — left, center, right — frame it. The facts they share, and the ones they bury.
             </p>
           </div>
 
@@ -219,7 +222,7 @@ export default function Home() {
               />
               <button
                 type="submit"
-                className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2.5 bg-amber-400 hover:bg-amber-300 text-zinc-900 rounded-lg font-semibold transition-colors text-sm"
+                className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2.5 rounded-lg bg-gradient-to-br from-amber-400 to-orange-500 text-zinc-950 font-[family-name:var(--font-oswald)] font-bold uppercase tracking-wide text-sm shadow-[0_6px_18px_-6px_rgba(249,115,22,0.55)] hover:shadow-[0_8px_22px_-4px_rgba(249,115,22,0.85)] transition-shadow"
               >
                 Search
               </button>
