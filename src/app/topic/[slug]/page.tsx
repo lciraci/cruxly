@@ -110,12 +110,15 @@ function queryToSlug(q: string): string {
     .replace(/[^a-z0-9-]/g, '');
 }
 
-// Fetch the real outlets currently covering this topic, grouped into the three
-// spectrum buckets. Server-side, ISR-cached 24h, short timeout + safe fallback —
-// if anything fails the boxes keep their static copy and the page is unaffected.
-async function fetchTopicOutlets(
-  query: string
-): Promise<{ left: string[]; center: string[]; right: string[] } | null> {
+type TopicHeadline = { title: string; source: string; url: string };
+type TopicCoverage = { left: TopicHeadline[]; center: TopicHeadline[]; right: TopicHeadline[] };
+
+// Fetch the real headlines currently covering this topic, grouped into the three
+// spectrum buckets. Server-side, ISR-cached 24h, short timeout + safe fallback.
+// The real titles make every topic page UNIQUE content (not templated boilerplate),
+// which is what gets thin/duplicate pages indexed. If anything fails the page falls
+// back to its static copy and is unaffected.
+async function fetchTopicCoverage(query: string): Promise<TopicCoverage | null> {
   try {
     const res = await fetch(
       `https://cruxly.dev/api/news/search?q=${encodeURIComponent(query)}&pageSize=12`,
@@ -125,13 +128,10 @@ async function fetchTopicOutlets(
     const data = await res.json();
     const articles: EnrichedArticle[] = data.articles ?? [];
     if (articles.length === 0) return null;
-    const pick = (biases: string[]) => [
-      ...new Set(
-        articles
-          .filter((a) => a.sourceBias && biases.includes(a.sourceBias))
-          .map((a) => a.source.name)
-      ),
-    ];
+    const pick = (biases: string[]): TopicHeadline[] =>
+      articles
+        .filter((a) => a.sourceBias && biases.includes(a.sourceBias) && a.title && a.url)
+        .map((a) => ({ title: a.title, source: a.source.name, url: a.url }));
     return {
       left: pick(['left', 'center-left']),
       center: pick(['center']),
@@ -150,7 +150,14 @@ export default async function TopicPage({
   const { slug } = await params;
   const query = slugToQuery(slug);
   const canonicalUrl = `https://cruxly.dev/topic/${slug}`;
-  const outlets = await fetchTopicOutlets(query);
+  const coverage = await fetchTopicCoverage(query);
+  const outlets = coverage
+    ? {
+        left: [...new Set(coverage.left.map((h) => h.source))],
+        center: [...new Set(coverage.center.map((h) => h.source))],
+        right: [...new Set(coverage.right.map((h) => h.source))],
+      }
+    : null;
 
   // Related topics (excluding current one)
   const relatedTopics = FALLBACK_RELATED.filter(
@@ -306,6 +313,52 @@ export default async function TopicPage({
             ) : null}
           </div>
         </div>
+
+        {/* Real headlines — unique per topic, server-rendered so Google indexes
+            genuine content instead of templated boilerplate. */}
+        {coverage && (coverage.left.length > 0 || coverage.center.length > 0 || coverage.right.length > 0) && (
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold text-zinc-100 mb-1">
+              What each side is reporting on {query} right now
+            </h2>
+            <p className="text-xs text-zinc-600 mb-4">
+              Live headlines pulled from across the spectrum — updated daily.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                { key: 'left', label: 'Liberal', items: coverage.left, dot: 'bg-blue-700', text: 'text-blue-400' },
+                { key: 'center', label: 'Balanced', items: coverage.center, dot: 'bg-zinc-400', text: 'text-zinc-400' },
+                { key: 'right', label: 'Conservative', items: coverage.right, dot: 'bg-red-600', text: 'text-red-400' },
+              ].map((col) => (
+                <div key={col.key} className="rounded-lg border border-white/[0.07] bg-white/[0.02] p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`w-2 h-2 rounded-full ${col.dot}`} />
+                    <span className={`text-xs font-bold uppercase tracking-widest ${col.text}`}>{col.label}</span>
+                  </div>
+                  {col.items.length > 0 ? (
+                    <ul className="space-y-3">
+                      {col.items.slice(0, 4).map((h, i) => (
+                        <li key={i}>
+                          <a
+                            href={h.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-zinc-300 hover:text-amber-400 leading-snug transition-colors"
+                          >
+                            {h.title}
+                          </a>
+                          <div className="text-xs text-zinc-600 mt-0.5">{h.source}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-zinc-600 italic">No recent coverage from this side.</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Main content sections targeting keyword variants */}
         <section className="mb-10">
