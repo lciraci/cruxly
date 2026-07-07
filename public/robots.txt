@@ -4,5 +4,6 @@ Allow: /topic/
 Allow: /api/og
 Disallow: /api/credits
 Disallow: /api/news/
+Disallow: /admin/
 
 Sitemap: https://cruxly.dev/api/sitemap.xml
