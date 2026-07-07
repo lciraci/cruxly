@@ -20,6 +20,15 @@ function cleanTitle(raw: string): string {
   return t;
 }
 
+// Reject ads/promos and vague fragments that sneak into RSS feeds
+// (e.g. "0% intro APR…", "It's official").
+const AD_RE = /\bAPR\b|%\s*off|\bcoupon\b|\bsponsored\b|shop now|\bdiscount(s|ed)?\b|save \$\d|\bgift card\b|\bdeal of the\b/i;
+function isJunkHeadline(t: string): boolean {
+  if (t.length < 15) return true;
+  if (t.split(/\s+/).filter(Boolean).length < 3) return true;
+  return AD_RE.test(t);
+}
+
 // Live trending from the RSS feeds — free, no API limits, works in production
 // (unlike NewsAPI, whose free plan is blocked on deployed servers). Takes the
 // most recent couple of headlines from each feed across the spectrum.
@@ -53,7 +62,7 @@ async function trendingFromRSS(): Promise<string[]> {
     for (const raw of r.value) {
       const clean = cleanTitle(raw);
       const key = clean.toLowerCase();
-      if (clean.length > 8 && !seen.has(key)) {
+      if (!isJunkHeadline(clean) && !seen.has(key)) {
         seen.add(key);
         out.push(clean);
       }
