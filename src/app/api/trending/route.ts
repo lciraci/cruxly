@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import RSSParser from 'rss-parser';
 import { getSupabaseClient } from '@/lib/supabase';
+import { RSS_FEEDS } from '@/config/rss-feeds';
 
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const NEWS_API_BASE_URL = 'https://newsapi.org/v2';
+const rssParser = new RSSParser();
 
 // Trim a raw NewsAPI headline down to a short, searchable topic.
 function cleanTitle(raw: string): string {
@@ -15,6 +18,48 @@ function cleanTitle(raw: string): string {
   // Hard cap at 52 chars, break at word boundary
   if (t.length > 52) t = t.slice(0, 52).replace(/\s\S*$/, '').trim();
   return t;
+}
+
+// Live trending from the RSS feeds — free, no API limits, works in production
+// (unlike NewsAPI, whose free plan is blocked on deployed servers). Takes the
+// most recent couple of headlines from each feed across the spectrum.
+async function trendingFromRSS(): Promise<string[]> {
+  const cutoff = Date.now() - 3 * 24 * 60 * 60 * 1000; // last 3 days = "trending"
+
+  const perFeed = await Promise.allSettled(
+    RSS_FEEDS.map(async (fc) => {
+      try {
+        const feed = await Promise.race([
+          rssParser.parseURL(fc.feedUrl),
+          new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000)),
+        ]);
+        return (feed.items ?? [])
+          .filter((it) => {
+            const d = new Date(it.isoDate || it.pubDate || '').getTime();
+            return isNaN(d) || d > cutoff; // keep recent (or undated) items
+          })
+          .slice(0, 2)
+          .map((it) => it.title || '');
+      } catch {
+        return [] as string[];
+      }
+    })
+  );
+
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const r of perFeed) {
+    if (r.status !== 'fulfilled') continue;
+    for (const raw of r.value) {
+      const clean = cleanTitle(raw);
+      const key = clean.toLowerCase();
+      if (clean.length > 8 && !seen.has(key)) {
+        seen.add(key);
+        out.push(clean);
+      }
+    }
+  }
+  return out.slice(0, 6);
 }
 
 export async function GET() {
@@ -69,7 +114,20 @@ export async function GET() {
     // Fall through to headlines
   }
 
-  // ── 2. Fallback: top headlines from NewsAPI ─────────────────────────────────
+  // ── 2. Live headlines from RSS feeds (free, works in production) ─────────────
+  try {
+    const rss = await trendingFromRSS();
+    if (rss.length >= 3) {
+      return NextResponse.json(
+        { searches: rss, source: 'headlines' },
+        { headers: { 'Cache-Control': 's-maxage=1800, stale-while-revalidate=900' } }
+      );
+    }
+  } catch {
+    // Fall through to NewsAPI
+  }
+
+  // ── 3. Fallback: top headlines from NewsAPI ─────────────────────────────────
   if (!NEWS_API_KEY) {
     return NextResponse.json({ searches: [], source: 'none' });
   }
