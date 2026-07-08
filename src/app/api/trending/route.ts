@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import RSSParser from 'rss-parser';
+import Anthropic from '@anthropic-ai/sdk';
 import { getSupabaseClient } from '@/lib/supabase';
 import { RSS_FEEDS } from '@/config/rss-feeds';
 
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const NEWS_API_BASE_URL = 'https://newsapi.org/v2';
 const rssParser = new RSSParser();
+const anthropic = new Anthropic();
 
 // Trim a raw NewsAPI headline down to a short, searchable topic.
 function cleanTitle(raw: string): string {
@@ -68,7 +70,39 @@ async function trendingFromRSS(): Promise<string[]> {
       }
     }
   }
-  return out.slice(0, 6);
+  return out.slice(0, 18);
+}
+
+// Ask Claude Haiku to distill raw headlines into short, searchable trending
+// topics (2-4 words). Returns [] on any failure so the caller can fall back.
+async function generalizeTopics(headlines: string[]): Promise<string[]> {
+  if (!process.env.ANTHROPIC_API_KEY || headlines.length === 0) return [];
+  try {
+    const message = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 200,
+      system: [
+        {
+          type: 'text',
+          text:
+            'You turn news headlines into short, searchable trending topics. Given a list of current headlines, return the 6 most distinct stories as concise topic labels of 2-4 words each (e.g. "NATO Europe", "Iran sanctions", "Trump tariffs"). Each must be specific enough to return relevant news when searched, but generic enough to read as a clean chip — no full sentences, no trailing punctuation, no editorializing. Return ONLY a JSON array of 6 strings.',
+          cache_control: { type: 'ephemeral' },
+        },
+      ],
+      messages: [{ role: 'user', content: `Headlines:\n${headlines.map((h) => `- ${h}`).join('\n')}` }],
+    });
+    const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+    const json = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
+    const parsed = JSON.parse(json);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((s): s is string => typeof s === 'string')
+      .map((s) => s.trim())
+      .filter((s) => s.length >= 3 && s.length <= 40)
+      .slice(0, 6);
+  } catch {
+    return [];
+  }
 }
 
 export async function GET() {
@@ -123,12 +157,14 @@ export async function GET() {
     // Fall through to headlines
   }
 
-  // ── 2. Live headlines from RSS feeds (free, works in production) ─────────────
+  // ── 2. Live headlines from RSS, distilled into short topics by Claude ────────
   try {
-    const rss = await trendingFromRSS();
-    if (rss.length >= 3) {
+    const headlines = await trendingFromRSS();
+    if (headlines.length >= 3) {
+      const generic = await generalizeTopics(headlines);
+      const searches = generic.length >= 3 ? generic : headlines.slice(0, 6);
       return NextResponse.json(
-        { searches: rss, source: 'headlines' },
+        { searches, source: 'headlines' },
         { headers: { 'Cache-Control': 's-maxage=1800, stale-while-revalidate=900' } }
       );
     }
