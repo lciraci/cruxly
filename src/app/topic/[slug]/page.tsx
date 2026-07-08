@@ -142,71 +142,6 @@ async function fetchTopicCoverage(query: string): Promise<TopicCoverage | null> 
   }
 }
 
-function HeadlinesSkeleton() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-12">
-      {[0, 1, 2].map((i) => (
-        <div key={i} className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-4 h-40 animate-pulse" />
-      ))}
-    </div>
-  );
-}
-
-// Async — rendered inside <Suspense> so the cold page streams its shell
-// immediately and fills the headlines in once the news fetch resolves.
-async function TopicHeadlines({ query }: { query: string }) {
-  const coverage = await fetchTopicCoverage(query);
-  if (
-    !coverage ||
-    (coverage.left.length === 0 && coverage.center.length === 0 && coverage.right.length === 0)
-  ) {
-    return null;
-  }
-  return (
-    <section className="mb-12">
-      <h2 className="text-2xl font-bold text-zinc-100 mb-1">
-        What each side is reporting on {query} right now
-      </h2>
-      <p className="text-xs text-zinc-600 mb-4">
-        Live headlines pulled from across the spectrum — updated daily.
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {[
-          { key: 'left', label: 'Liberal', items: coverage.left, dot: 'bg-blue-700', text: 'text-blue-400' },
-          { key: 'center', label: 'Balanced', items: coverage.center, dot: 'bg-zinc-400', text: 'text-zinc-400' },
-          { key: 'right', label: 'Conservative', items: coverage.right, dot: 'bg-red-600', text: 'text-red-400' },
-        ].map((col) => (
-          <div key={col.key} className="rounded-lg border border-white/[0.07] bg-white/[0.02] p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <span className={`w-2 h-2 rounded-full ${col.dot}`} />
-              <span className={`text-xs font-bold uppercase tracking-widest ${col.text}`}>{col.label}</span>
-            </div>
-            {col.items.length > 0 ? (
-              <ul className="space-y-3">
-                {col.items.slice(0, 4).map((h, i) => (
-                  <li key={i}>
-                    <a
-                      href={h.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm text-zinc-300 hover:text-amber-400 leading-snug transition-colors"
-                    >
-                      {h.title}
-                    </a>
-                    <div className="text-xs text-zinc-600 mt-0.5">{h.source}</div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-xs text-zinc-600 italic">No recent coverage from this side.</p>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 export default async function TopicPage({
   params,
 }: {
@@ -215,6 +150,14 @@ export default async function TopicPage({
   const { slug } = await params;
   const query = slugToQuery(slug);
   const canonicalUrl = `https://cruxly.dev/topic/${slug}`;
+  const coverage = await fetchTopicCoverage(query);
+  const outlets = coverage
+    ? {
+        left: [...new Set(coverage.left.map((h) => h.source))],
+        center: [...new Set(coverage.center.map((h) => h.source))],
+        right: [...new Set(coverage.right.map((h) => h.source))],
+      }
+    : null;
 
   // Related topics (excluding current one)
   const relatedTopics = FALLBACK_RELATED.filter(
@@ -337,6 +280,11 @@ export default async function TopicPage({
             <p className="text-sm text-emerald-300/90 leading-relaxed">
               How MSNBC, CNN, NPR, and the New York Times frame {query}.
             </p>
+            {outlets?.left.length ? (
+              <p className="text-xs text-emerald-300/60 mt-3">
+                Now covering: {outlets.left.join(', ')}
+              </p>
+            ) : null}
           </div>
           <div className="p-5 rounded-lg bg-blue-500/10 border border-blue-500/20">
             <div className="text-sm font-semibold text-blue-400 mb-2">
@@ -345,6 +293,11 @@ export default async function TopicPage({
             <p className="text-sm text-blue-300/90 leading-relaxed">
               How AP, Reuters, BBC, and the Wall Street Journal report {query}.
             </p>
+            {outlets?.center.length ? (
+              <p className="text-xs text-blue-300/60 mt-3">
+                Now covering: {outlets.center.join(', ')}
+              </p>
+            ) : null}
           </div>
           <div className="p-5 rounded-lg bg-rose-500/10 border border-rose-500/20">
             <div className="text-sm font-semibold text-rose-400 mb-2">
@@ -353,15 +306,59 @@ export default async function TopicPage({
             <p className="text-sm text-rose-300/90 leading-relaxed">
               How Fox News, National Review, NY Post, and Washington Examiner cover {query}.
             </p>
+            {outlets?.right.length ? (
+              <p className="text-xs text-rose-300/60 mt-3">
+                Now covering: {outlets.right.join(', ')}
+              </p>
+            ) : null}
           </div>
         </div>
 
-        {/* Real headlines — streamed via Suspense so the cold render isn't
-            blocked on the server-side news fetch. The resolved content still
-            lands in the ISR-cached HTML, so SEO is unaffected. */}
-        <Suspense fallback={<HeadlinesSkeleton />}>
-          <TopicHeadlines query={query} />
-        </Suspense>
+        {/* Real headlines — unique per topic, server-rendered so Google indexes
+            genuine content instead of templated boilerplate. */}
+        {coverage && (coverage.left.length > 0 || coverage.center.length > 0 || coverage.right.length > 0) && (
+          <section className="mb-12">
+            <h2 className="text-2xl font-bold text-zinc-100 mb-1">
+              What each side is reporting on {query} right now
+            </h2>
+            <p className="text-xs text-zinc-600 mb-4">
+              Live headlines pulled from across the spectrum — updated daily.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                { key: 'left', label: 'Liberal', items: coverage.left, dot: 'bg-blue-700', text: 'text-blue-400' },
+                { key: 'center', label: 'Balanced', items: coverage.center, dot: 'bg-zinc-400', text: 'text-zinc-400' },
+                { key: 'right', label: 'Conservative', items: coverage.right, dot: 'bg-red-600', text: 'text-red-400' },
+              ].map((col) => (
+                <div key={col.key} className="rounded-lg border border-white/[0.07] bg-white/[0.02] p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className={`w-2 h-2 rounded-full ${col.dot}`} />
+                    <span className={`text-xs font-bold uppercase tracking-widest ${col.text}`}>{col.label}</span>
+                  </div>
+                  {col.items.length > 0 ? (
+                    <ul className="space-y-3">
+                      {col.items.slice(0, 4).map((h, i) => (
+                        <li key={i}>
+                          <a
+                            href={h.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm text-zinc-300 hover:text-amber-400 leading-snug transition-colors"
+                          >
+                            {h.title}
+                          </a>
+                          <div className="text-xs text-zinc-600 mt-0.5">{h.source}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-xs text-zinc-600 italic">No recent coverage from this side.</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Main content sections targeting keyword variants */}
         <section className="mb-10">
