@@ -140,14 +140,18 @@ export async function GET() {
           }
         }
 
+        // Require ≥2 searches so one-off / test queries don't count as "trending"
         const top = [...counts.entries()]
+          .filter(([, c]) => c >= 2)
           .sort((a, b) => b[1] - a[1])
-          .slice(0, 6)
+          .slice(0, 8)
           .map(([key]) => origCase.get(key) ?? key);
 
         if (top.length >= 3) {
+          const generic = await generalizeTopics(top);
+          const searches = generic.length >= 3 ? generic : top.slice(0, 6);
           return NextResponse.json(
-            { searches: top, source: 'users' },
+            { searches, source: 'users' },
             { headers: { 'Cache-Control': 's-maxage=1800, stale-while-revalidate=900' } }
           );
         }
