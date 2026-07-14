@@ -7,6 +7,7 @@ import { StoryAnalysis, NarrativeDrift } from '@/types/analysis';
 import AdBanner from '@/components/AdBanner';
 import { SkeletonGrid, SkeletonBiasBar } from '@/components/SkeletonCard';
 import { useAuth } from '@/hooks/useAuth';
+import { captureEvent } from '@/lib/track-client';
 import AuthModal from '@/components/AuthModal';
 import BuyCreditsModal from '@/components/BuyCreditsModal';
 import UsageCounter from '@/components/UsageCounter';
@@ -321,6 +322,7 @@ export default function StoryContent({ initialQuery }: { initialQuery?: string }
       if (data.notice) setNotice(data.notice);
 
       // Track after we know the article count — so trending only surfaces real results
+      captureEvent('search', { query, articleCount: data.articles?.length ?? 0 });
       if (currentSession?.access_token && data.articles?.length > 0) {
         fetch('/api/events', {
           method: 'POST',
@@ -363,6 +365,7 @@ export default function StoryContent({ initialQuery }: { initialQuery?: string }
         throw new Error(errorData.error || 'Failed to analyze articles');
       }
       const data = await response.json();
+      captureEvent('analysis', { topic: query, articleCount: articles.length });
       setAnalysis(data);
       setActiveTab(data.drift ? 'dna' : 'analysis');
       setUsageKey(k => k + 1);
