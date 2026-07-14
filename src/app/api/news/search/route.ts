@@ -49,6 +49,21 @@ function extractEntities(text: string): { entities: string[]; terms: string[] } 
 // ---------------------------------------------------------------------------
 // Relevance scoring with entity matching
 // ---------------------------------------------------------------------------
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function tokenize(text: string): string[] {
+  return text.toLowerCase().split(/[^a-z0-9']+/).filter(Boolean);
+}
+
+// Whole-word match with light stemming: 'strike' matches 'strikes', but
+// 'date' no longer matches 'updates' and 'pro' no longer matches 'protest'.
+// Substring matching let almost any article pass the relevance threshold.
+function hasTerm(words: string[], term: string): boolean {
+  return words.some(w => w === term || (w.startsWith(term) && w.length - term.length <= 2));
+}
+
 function relevanceScore(
   article: { title: string; description?: string | null; content?: string | null },
   query: string,
@@ -63,23 +78,25 @@ function relevanceScore(
 
   const title = (article.title || '').toLowerCase();
   const fullText = `${title} ${article.description || ''} ${article.content || ''}`.toLowerCase();
+  const titleWords = tokenize(title);
+  const fullTextWords = tokenize(fullText);
 
   // Count matches in full text
   let textMatches = 0;
   for (const term of queryTerms) {
-    if (fullText.includes(term)) textMatches++;
+    if (hasTerm(fullTextWords, term)) textMatches++;
   }
 
   // Count matches in title specifically
   let titleMatches = 0;
   for (const term of queryTerms) {
-    if (title.includes(term)) titleMatches++;
+    if (hasTerm(titleWords, term)) titleMatches++;
   }
 
   // Entity matching — boost if named entities from query appear in article
   let entityMatches = 0;
   for (const entity of queryEntities) {
-    if (fullText.includes(entity.toLowerCase())) entityMatches++;
+    if (new RegExp(`\\b${escapeRegex(entity.toLowerCase())}\\b`).test(fullText)) entityMatches++;
   }
 
   // Base score: % of query terms found in full text
