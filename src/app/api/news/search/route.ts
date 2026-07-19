@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
-import RSSParser from 'rss-parser';
 import Anthropic from '@anthropic-ai/sdk';
-import { NEWS_SOURCES, getSourceById } from '@/config/sources';
+import { NEWS_SOURCES } from '@/config/sources';
 import { RSS_FEEDS } from '@/config/rss-feeds';
 import { Article, EnrichedArticle, NewsAPIResponse } from '@/types/news';
 import type { BiasLeaning } from '@/config/sources';
 import { trackEvent } from '@/lib/analytics';
+import { fetchAllRSSArticles } from '@/lib/rss-articles';
+import { archiveArticles } from '@/lib/article-archive';
 
 const NEWS_API_KEY = process.env.NEWS_API_KEY;
 const NEWS_API_BASE_URL = 'https://newsapi.org/v2';
-const rssParser = new RSSParser();
 const anthropic = new Anthropic();
 
 // Common stop words to ignore in relevance scoring
@@ -158,61 +158,6 @@ function getClusterKey(publishedAt: string): string {
   const clusterDate = new Date(date);
   clusterDate.setHours(hours, 0, 0, 0);
   return clusterDate.toISOString().split('T')[0] + `_${hours}`;
-}
-
-// ---------------------------------------------------------------------------
-// RSS Feed Fetching — free, full text, no API limits
-// ---------------------------------------------------------------------------
-async function fetchRSSArticles(query: string): Promise<EnrichedArticle[]> {
-  const allArticles: EnrichedArticle[] = [];
-  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-
-  const feedPromises = RSS_FEEDS.map(async (feedConfig) => {
-    try {
-      // Race the parse against a hard 5-second timeout
-      const feed = await Promise.race([
-        rssParser.parseURL(feedConfig.feedUrl),
-        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
-      ]);
-
-      const source = getSourceById(feedConfig.sourceId);
-      if (!source || !feed.items) return [];
-
-      // Convert RSS items, filter out articles older than 7 days
-      return feed.items
-        .slice(0, 15)
-        .map((item): EnrichedArticle => ({
-          source: { id: source.newsApiId || source.id, name: source.name },
-          author: item.creator || item['dc:creator'] || null,
-          title: item.title || '',
-          description: item.contentSnippet || item.content?.substring(0, 300) || null,
-          url: item.link || '',
-          urlToImage: item.enclosure?.url || null,
-          publishedAt: item.isoDate || item.pubDate || new Date().toISOString(),
-          content: item.content || item['content:encoded'] || null,
-          sourceBias: source.bias,
-          sourceTrustScore: source.trustScore,
-          sourceRegion: source.region,
-        }))
-        .filter(article => {
-          // Filter out articles older than 7 days
-          const pubDate = new Date(article.publishedAt).getTime();
-          return !isNaN(pubDate) && pubDate > sevenDaysAgo;
-        });
-    } catch (_err) {
-      // RSS feed failed — that's fine, we have other sources
-      return [];
-    }
-  });
-
-  const results = await Promise.allSettled(feedPromises);
-  for (const result of results) {
-    if (result.status === 'fulfilled') {
-      allArticles.push(...result.value);
-    }
-  }
-
-  return allArticles;
 }
 
 // ---------------------------------------------------------------------------
@@ -453,12 +398,15 @@ export async function GET(request: NextRequest) {
     // Fetch from BOTH sources in parallel
     // NewsAPI is PRIMARY (keyword search), RSS is SUPPLEMENTARY (topic feeds)
     const [rssArticles, newsApiArticles] = await Promise.all([
-      fetchRSSArticles(query),
+      fetchAllRSSArticles(7),
       fetchNewsAPIArticles(query, language, location),
     ]);
 
     // Merge: NewsAPI first (better keyword matching), then RSS
     const allArticles = [...newsApiArticles, ...rssArticles];
+
+    // Grow the archive with everything this search saw (fire-and-forget)
+    archiveArticles(allArticles).catch(() => {});
 
     // Apply diversity engine with entity matching and temporal clustering
     let { articles: finalArticles, lowCoverage, clusters } = enforceDiversity(allArticles, query, pageSize, queryEntities);
@@ -468,11 +416,10 @@ export async function GET(request: NextRequest) {
       const expandedQueries = await expandQuery(query);
 
       if (expandedQueries.length > 0) {
+        // Only NewsAPI is worth re-querying: RSS feeds return the same items
+        // regardless of query, so refetching them only produced duplicates
         const expandedFetches = await Promise.allSettled(
-          expandedQueries.map(q => Promise.all([
-            fetchRSSArticles(q),
-            fetchNewsAPIArticles(q, language, location),
-          ]))
+          expandedQueries.map(q => fetchNewsAPIArticles(q, language, location))
         );
 
         // Collect new articles, deduplicate by URL against what we already have
@@ -481,7 +428,7 @@ export async function GET(request: NextRequest) {
 
         for (const result of expandedFetches) {
           if (result.status === 'fulfilled') {
-            for (const article of [...result.value[1], ...result.value[0]]) {
+            for (const article of result.value) {
               if (article.url && !seenUrls.has(article.url)) {
                 seenUrls.add(article.url);
                 extraArticles.push(article);
@@ -491,6 +438,8 @@ export async function GET(request: NextRequest) {
         }
 
         if (extraArticles.length > 0) {
+          // Archive the expansion finds too
+          archiveArticles(extraArticles).catch(() => {});
           // Re-run diversity on the combined pool with a relaxed threshold
           const expanded = enforceDiversity(
             [...allArticles, ...extraArticles],
