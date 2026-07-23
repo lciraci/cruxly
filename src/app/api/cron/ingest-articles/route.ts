@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchAllRSSArticles } from '@/lib/rss-articles';
-import { archiveArticles } from '@/lib/article-archive';
+import { archiveArticles, archiveCount } from '@/lib/article-archive';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -17,12 +17,15 @@ export async function GET(req: NextRequest) {
   }
 
   const articles = await fetchAllRSSArticles();
-  const stored = await archiveArticles(articles);
+  const { stored, error } = await archiveArticles(articles);
+  const total = await archiveCount();
 
   return NextResponse.json({
-    ok: true,
+    ok: error === null,
     fetched: articles.length,
     newlyArchived: stored,
+    totalInArchive: total,
+    archiveError: error,
     timestamp: new Date().toISOString(),
   });
 }
