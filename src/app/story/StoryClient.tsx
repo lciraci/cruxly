@@ -638,6 +638,12 @@ export default function StoryContent({ initialQuery }: { initialQuery?: string }
                 </div>
                 <p className="text-zinc-300 font-semibold mb-1">No articles found</p>
                 <p className="text-zinc-600 text-sm max-w-xs">Try different keywords or a broader topic.</p>
+                <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium text-amber-300/90 bg-amber-400/[0.08] border border-amber-400/25 rounded-full px-3 py-1.5 text-center">
+                  <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <span>Cruxly only covers the last 7 days — older stories won&apos;t appear</span>
+                </p>
                 <button
                   onClick={() => router.push('/')}
                   className="mt-5 px-4 py-2 text-sm text-zinc-400 hover:text-zinc-200 border border-white/[0.08] hover:border-white/[0.16] rounded-lg transition-all"

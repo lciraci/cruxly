@@ -201,11 +201,11 @@ export default function Home() {
           {/* Search & Location */}
           <div className="flex flex-col items-center gap-6 max-w-2xl mx-auto">
             {/* Scope Badge */}
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-400/30 bg-amber-400/[0.08] text-xs font-medium text-amber-300">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-amber-400/40 bg-amber-400/[0.12] text-sm font-semibold text-amber-300 text-center">
+              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              Coverage of news from the last 7 days
+              <span>Searches cover the <span className="text-amber-200 font-bold">last 7 days</span> of news only</span>
             </div>
 
             {/* Search Bar */}
