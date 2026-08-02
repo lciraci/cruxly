@@ -40,9 +40,15 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
   const [error, setError] = useState('');
 
   const handleGoogleSignIn = async () => {
+    // OAuth leaves the app, so remember where the user was — otherwise the
+    // callback falls back to "/" and they lose the search results they were
+    // looking at when they hit the Get the Crux gate.
+    const next = `${window.location.pathname}${window.location.search}`;
     await supabaseBrowser.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      },
     });
   };
 
