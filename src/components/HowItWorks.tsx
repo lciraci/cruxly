@@ -1,36 +1,133 @@
-import { MapPin, Search, BarChart2, BrainCircuit, Dna, LucideIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Search, BarChart2, BrainCircuit, Dna, LucideIcon } from 'lucide-react';
 
 interface HowItWorksStep {
   step: string;
   title: string;
   desc: string;
   Icon: LucideIcon;
+  /** Miniature of the real product output for this step — decorative, so it's aria-hidden. */
+  Visual: () => ReactNode;
+}
+
+/* ── Step miniatures ──────────────────────────────────────────────────
+   Built from the same primitives as the live UI (SpectrumBar's gradient
+   rail, the analysis claim chips, the Story DNA markers) so the section
+   shows what Cruxly returns instead of describing it.
+   ------------------------------------------------------------------ */
+
+function SearchVisual() {
+  return (
+    <div className="w-full flex items-center gap-2 rounded-full border border-white/[0.10] bg-zinc-900/80 px-3 py-2">
+      <Search size={11} className="text-zinc-500 shrink-0" />
+      <span className="text-[11px] text-zinc-300 truncate">Iran sanctions</span>
+      <span className="ml-auto shrink-0 text-[9px] font-bold uppercase tracking-wider text-amber-400/70">
+        30+
+      </span>
+    </div>
+  );
+}
+
+function SpectrumVisual() {
+  return (
+    <div className="w-full">
+      <div className="flex justify-between mb-1.5 text-[8px] font-bold uppercase tracking-wider">
+        <span className="text-blue-400">Liberal</span>
+        <span className="text-zinc-500">Balanced</span>
+        <span className="text-red-400">Cons.</span>
+      </div>
+      <div className="relative h-1.5 rounded-full bg-gradient-to-r from-blue-500 via-zinc-500 to-red-500">
+        <span className="absolute left-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-blue-400 border border-zinc-900" />
+        <span className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-zinc-300 border border-zinc-900" />
+        <span className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-red-400 border border-zinc-900" />
+      </div>
+      <div className="flex justify-between mt-2 text-[8px] text-zinc-400">
+        {['NYT', 'BBC', 'Fox'].map(name => (
+          <span key={name} className="rounded-full border border-white/[0.07] bg-white/[0.04] px-1.5 py-0.5">
+            {name}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CruxVisual() {
+  return (
+    <div className="w-full space-y-1.5">
+      <div className="flex items-center gap-1.5 rounded-md border border-emerald-500/20 bg-emerald-500/[0.07] px-2 py-1.5">
+        <span className="text-[10px] font-black text-emerald-400">✓</span>
+        <span className="text-[10px] text-zinc-300 truncate">All 9 sources agree</span>
+      </div>
+      <div className="flex items-center gap-1.5 rounded-md border border-amber-500/20 bg-amber-500/[0.07] px-2 py-1.5">
+        <span className="text-[10px] font-black text-amber-400">!</span>
+        <span className="text-[10px] text-zinc-300 truncate">Disputed by 2</span>
+      </div>
+    </div>
+  );
+}
+
+function DnaVisual() {
+  const markers = [
+    { symbol: '+', className: 'text-emerald-400 border-emerald-500/25 bg-emerald-500/[0.07]' },
+    { symbol: '−', className: 'text-rose-400 border-rose-500/25 bg-rose-500/[0.07]' },
+    { symbol: '!', className: 'text-amber-400 border-amber-500/25 bg-amber-500/[0.07]' },
+  ];
+
+  return (
+    <div className="w-full px-0.5">
+      <div className="flex justify-between mb-2">
+        {markers.map(({ symbol, className }) => (
+          <span
+            key={symbol}
+            className={`w-5 h-5 rounded border flex items-center justify-center text-[10px] font-black ${className}`}
+          >
+            {symbol}
+          </span>
+        ))}
+      </div>
+      <div className="relative h-px bg-white/[0.12]">
+        <span className="absolute left-0 -top-[3px] w-1.5 h-1.5 rounded-full bg-zinc-600" />
+        <span className="absolute left-1/2 -translate-x-1/2 -top-[3px] w-1.5 h-1.5 rounded-full bg-zinc-600" />
+        <span className="absolute right-0 -top-[3px] w-1.5 h-1.5 rounded-full bg-zinc-600" />
+      </div>
+      <div className="flex justify-between mt-1.5 text-[8px] uppercase tracking-wider text-zinc-500">
+        <span>Mon</span>
+        <span>Wed</span>
+        <span>Fri</span>
+      </div>
+    </div>
+  );
 }
 
 const defaultSteps: HowItWorksStep[] = [
   {
     step: '01',
-    title: 'Discover',
-    desc: "Set your location for local news, or browse what's trending right now across different topics.",
-    Icon: MapPin,
+    title: 'Search any story',
+    desc: 'Type a topic. Cruxly pulls live coverage from 30+ outlets across the full political spectrum in one search.',
+    Icon: Search,
+    Visual: SearchVisual,
   },
   {
     step: '02',
-    title: 'Search All Sides',
-    desc: 'Search any topic. Cruxly scans 30+ outlets across the full political spectrum—liberal, balanced, and conservative.',
-    Icon: Search,
+    title: "See who's covering it",
+    desc: 'Every outlet placed left to right by leaning. You see the spread before you read a word.',
+    Icon: BarChart2,
+    Visual: SpectrumVisual,
   },
   {
     step: '03',
-    title: 'See the Spectrum',
-    desc: 'Instantly see which outlets cover it and from what angle. Understand the full spread at a glance.',
-    Icon: BarChart2,
+    title: 'Get the Crux',
+    desc: "AI reads all sides at once and separates what every outlet agrees on from what only one side is claiming.",
+    Icon: BrainCircuit,
+    Visual: CruxVisual,
   },
   {
     step: '04',
-    title: 'Understand the Facts',
-    desc: "Get AI analysis: what all sides agree on, what's disputed, and how the story is changing.",
-    Icon: BrainCircuit,
+    title: 'Track how it shifts',
+    desc: "Run it again later. Story DNA shows what became consensus, what got quietly dropped, and what's newly disputed.",
+    Icon: Dna,
+    Visual: DnaVisual,
   },
 ];
 
@@ -47,23 +144,29 @@ export default function HowItWorks() {
         </div>
 
         {/* Steps */}
-        <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12 max-w-5xl mx-auto">
+        <div className="relative grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-14 max-w-5xl mx-auto">
           {/* Connecting line — desktop only */}
           <div className="hidden lg:block absolute top-6 left-[12.5%] right-[12.5%] h-px bg-gradient-to-r from-transparent via-amber-400/20 to-transparent" />
 
-          {defaultSteps.map(({ step, title, desc, Icon }) => (
+          {defaultSteps.map(({ step, title, desc, Icon, Visual }) => (
             <div key={step} className="group flex flex-col items-center text-center">
               {/* Icon circle */}
               <div className="relative z-10 mb-6 w-12 h-12 rounded-full border border-amber-400/30 bg-zinc-900 flex items-center justify-center group-hover:border-amber-400/70 group-hover:bg-amber-400/5 transition-all duration-300">
                 <Icon size={20} className="text-amber-400/70 group-hover:text-amber-400 transition-colors duration-300" />
               </div>
 
-              {/* Large decorative number */}
-              <span className="text-[4rem] font-black leading-none text-zinc-800 group-hover:text-zinc-700 transition-colors duration-300 mb-3 select-none">
-                {step}
-              </span>
+              {/* What this step actually produces */}
+              <div
+                aria-hidden="true"
+                className="w-full max-w-[260px] h-[92px] mb-5 px-3 rounded-lg border border-white/[0.06] bg-white/[0.02] flex items-center justify-center group-hover:border-white/[0.12] transition-colors duration-300"
+              >
+                <Visual />
+              </div>
 
-              <h3 className="text-base font-bold text-zinc-100 mb-2">{title}</h3>
+              <div className="flex items-baseline justify-center gap-2 mb-2">
+                <span className="text-[11px] font-bold tracking-widest text-amber-400/50">{step}</span>
+                <h3 className="text-base font-bold text-zinc-100">{title}</h3>
+              </div>
               <p className="text-sm text-zinc-400 leading-relaxed">{desc}</p>
             </div>
           ))}
