@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { Landmark, TrendingUp, Cpu, Globe, ArrowRight } from 'lucide-react';
 import HowItWorks from '@/components/HowItWorks';
 import SpectrumBar from '@/components/SpectrumBar';
-import AuthModal from '@/components/AuthModal';
 import BuyCreditsModal from '@/components/BuyCreditsModal';
 import UsageCounter from '@/components/UsageCounter';
 import { useAuth } from '@/hooks/useAuth';
@@ -52,9 +51,7 @@ export default function Home() {
   const [geoStatus, setGeoStatus] = useState<'idle' | 'loading' | 'denied' | 'error'>('idle');
   const [waitlistStatus, setWaitlistStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [localArticles, setLocalArticles] = useState<{ title: string; url: string }[]>([]);
-  const [showAuth, setShowAuth] = useState(false);
   const [showBuyCredits, setShowBuyCredits] = useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [trendingSearches, setTrendingSearches] = useState<string[]>(FALLBACK_SEARCHES);
   const [trendingSource, setTrendingSource] = useState<'users' | 'headlines' | null>(null);
   const router = useRouter();
@@ -95,27 +92,12 @@ export default function Home() {
       .catch(() => {});
   }, [location]);
 
-  // Gate any action behind auth — if logged out, show modal and queue the action.
-  const requireAuth = useCallback((action: () => void) => {
-    if (user) {
-      action();
-    } else {
-      setPendingAction(() => action);
-      setShowAuth(true);
-    }
-  }, [user]);
-
-  const handleAuthSuccess = () => {
-    setShowAuth(false);
-    if (pendingAction) {
-      pendingAction();
-      setPendingAction(null);
-    }
-  };
-
+  // Browsing the news is open to everyone — only "Get the Crux" (the AI
+  // analysis) requires an account, gated in StoryClient + /api/analyze.
   const navigate = useCallback((url: string, action: () => void = () => {}) => {
-    requireAuth(() => { action(); router.push(url); });
-  }, [requireAuth, router]);
+    action();
+    router.push(url);
+  }, [router]);
 
   const detectLocation = () => {
     if (!navigator.geolocation) { setGeoStatus('error'); return; }
@@ -264,7 +246,7 @@ export default function Home() {
                 {localArticles.map((article) => (
                   <button
                     key={article.url}
-                    onClick={() => requireAuth(() => window.open(article.url, '_blank', 'noopener,noreferrer'))}
+                    onClick={() => window.open(article.url, '_blank', 'noopener,noreferrer')}
                     title={article.title}
                     className="text-xs px-3 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/[0.04] text-amber-300/70 hover:text-amber-200 hover:border-amber-400/40 hover:bg-amber-400/[0.08] transition-all max-w-[220px] truncate"
                   >
@@ -412,7 +394,7 @@ export default function Home() {
           {/* Browse all CTA */}
           <div className="flex justify-center">
             <button
-              onClick={() => requireAuth(() => router.push('/topics'))}
+              onClick={() => router.push('/topics')}
               className="group flex items-center gap-2 px-6 py-3 rounded-xl border border-white/[0.10] bg-white/[0.03] hover:border-amber-400/40 hover:bg-amber-400/5 text-sm font-semibold text-zinc-300 hover:text-amber-400 transition-all duration-200"
             >
               Browse all topics
@@ -480,14 +462,6 @@ export default function Home() {
           </p>
         </div>
       </footer>
-
-      {/* Auth modal */}
-      {showAuth && (
-        <AuthModal
-          onClose={() => { setShowAuth(false); setPendingAction(null); }}
-          onSuccess={handleAuthSuccess}
-        />
-      )}
 
       {showBuyCredits && session && (
         <BuyCreditsModal
