@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { X, Mail, Lock, User, Loader2, Eye, EyeOff } from 'lucide-react';
 import { supabaseBrowser } from '@/lib/supabase-browser';
+import { RETURN_KEY } from '@/components/PostAuthReturn';
 
 interface AuthModalProps {
   onClose: () => void;
@@ -40,10 +41,20 @@ export default function AuthModal({ onClose, onSuccess }: AuthModalProps) {
   const [error, setError] = useState('');
 
   const handleGoogleSignIn = async () => {
-    // OAuth leaves the app, so remember where the user was — otherwise the
-    // callback falls back to "/" and they lose the search results they were
-    // looking at when they hit the Get the Crux gate.
+    // OAuth leaves the app, so remember where the user was — otherwise they
+    // come back to "/" and lose the search results they were looking at when
+    // they hit the Get the Crux gate.
+    //
+    // Recorded twice on purpose: `next` only survives if Supabase's Redirect
+    // URL allow-list accepts this exact URL, and it silently falls back to the
+    // project's Site URL when it doesn't. sessionStorage is ours and always
+    // survives, so PostAuthReturn can finish the trip either way.
     const next = `${window.location.pathname}${window.location.search}`;
+    try {
+      sessionStorage.setItem(RETURN_KEY, next);
+    } catch {
+      // private mode / storage blocked — the `next` param is still in play
+    }
     await supabaseBrowser.auth.signInWithOAuth({
       provider: 'google',
       options: {

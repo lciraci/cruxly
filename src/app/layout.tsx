@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import { Oswald } from "next/font/google";
 import Script from "next/script";
 import Navbar from "@/components/Navbar";
+import PostAuthReturn from "@/components/PostAuthReturn";
 import "./globals.css";
 
 // Condensed display face for bold-newsroom CTAs/headings
@@ -107,6 +108,7 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_JSONLD) }}
         />
+        <PostAuthReturn />
         <Navbar />
         <main className="flex-1">{children}</main>
       </body>
