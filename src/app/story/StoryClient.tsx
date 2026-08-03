@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { Lock } from 'lucide-react';
 import { EnrichedArticle } from '@/types/news';
 import { StoryAnalysis, NarrativeDrift } from '@/types/analysis';
 import AdBanner from '@/components/AdBanner';
@@ -261,6 +262,114 @@ export function StoryLoading() {
         <SkeletonGrid count={6} />
       </div>
     </div>
+  );
+}
+
+/* ── Locked tab panels ────────────────────────────────────────────────────────
+   Clicking AI Analysis / Story DNA before they have data used to do nothing —
+   a dead tab and a not-allowed cursor. That click is the highest-intent action
+   on the page, so answer it: show what the tab will hold and how to get there.
+
+   The shapes below are deliberately empty outlines, never placeholder claims.
+   Cruxly's whole promise is not inventing what sources said, so mocking up
+   fake "consensus facts" behind a blur would be the wrong thing to ship.
+   ------------------------------------------------------------------------- */
+
+function LockedPanelShell({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-white/[0.07] bg-white/[0.02] p-6 sm:p-10 text-center">
+      <div className="w-11 h-11 rounded-xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center mx-auto mb-4">
+        <Lock size={18} className="text-amber-400/80" />
+      </div>
+      <h3 className="text-lg font-bold text-zinc-100 mb-2">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+/** Empty outline of the analysis layout — structure only, no invented content. */
+function AnalysisOutline() {
+  return (
+    <div className="mt-7 max-w-md mx-auto space-y-2.5" aria-hidden="true">
+      <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/[0.05] px-3 py-2.5 flex items-center gap-2">
+        <span className="text-emerald-400 font-black text-xs">✓</span>
+        <span className="h-2 rounded bg-emerald-400/25 flex-1" />
+      </div>
+      <div className="rounded-lg border border-amber-500/20 bg-amber-500/[0.05] px-3 py-2.5 flex items-center gap-2">
+        <span className="text-amber-400 font-black text-xs">!</span>
+        <span className="h-2 rounded bg-amber-400/25 flex-1" />
+      </div>
+      <div className="rounded-lg border border-white/[0.07] bg-white/[0.03] px-3 py-2.5 flex items-center gap-2">
+        <span className="h-2 w-2 rounded-full bg-zinc-600 shrink-0" />
+        <span className="h-2 rounded bg-zinc-700 flex-1" />
+      </div>
+    </div>
+  );
+}
+
+function LockedAnalysisPanel({
+  sourceCount,
+  analyzing,
+  onRun,
+}: {
+  sourceCount: number;
+  analyzing: boolean;
+  onRun: () => void;
+}) {
+  return (
+    <LockedPanelShell title="AI Analysis is one click away">
+      <p className="text-sm text-zinc-400 leading-relaxed max-w-md mx-auto">
+        Cruxly reads all {sourceCount} sources at once and separates what every outlet agrees on
+        from what only one side is claiming — plus what each side leaves out.
+      </p>
+      <button
+        onClick={onRun}
+        disabled={analyzing}
+        className="mt-6 inline-flex items-center justify-center gap-2.5 rounded-xl px-6 py-3 bg-gradient-to-br from-amber-400 to-orange-500 text-zinc-950 font-[family-name:var(--font-oswald)] font-bold uppercase tracking-wide text-[15px] leading-none shadow-[0_8px_26px_-6px_rgba(249,115,22,0.55)] hover:shadow-[0_12px_36px_-4px_rgba(249,115,22,0.85)] hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0 transition-all"
+      >
+        {analyzing ? 'Getting the crux…' : 'Get the Crux'}
+      </button>
+      <AnalysisOutline />
+    </LockedPanelShell>
+  );
+}
+
+/**
+ * Story DNA needs two analyses to diff, so unlike AI Analysis there is no
+ * button that meaningfully unlocks it right now — a second run this instant
+ * would spend a credit to compare a story against itself. Say what it waits
+ * for instead of dangling a CTA.
+ */
+function LockedDnaPanel({ hasAnalysis, onRun }: { hasAnalysis: boolean; onRun: () => void }) {
+  return (
+    <LockedPanelShell title={hasAnalysis ? 'Story DNA unlocks on your second run' : 'Story DNA tracks how this story changes'}>
+      <p className="text-sm text-zinc-400 leading-relaxed max-w-md mx-auto">
+        {hasAnalysis
+          ? 'You’ve analysed this story once. Run Get the Crux again as the story develops and Cruxly compares the two runs.'
+          : 'Run Get the Crux now, then again in a few days. Cruxly compares the two runs and shows how the coverage moved.'}
+      </p>
+      <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2 max-w-lg mx-auto text-xs">
+        {[
+          { symbol: '+', label: 'New consensus', cls: 'text-emerald-400 border-emerald-500/20 bg-emerald-500/[0.06]' },
+          { symbol: '−', label: 'Dropped', cls: 'text-rose-400 border-rose-500/20 bg-rose-500/[0.06]' },
+          { symbol: '!', label: 'Newly disputed', cls: 'text-amber-400 border-amber-500/20 bg-amber-500/[0.06]' },
+          { symbol: '✓', label: 'Resolved', cls: 'text-blue-400 border-blue-500/20 bg-blue-500/[0.06]' },
+        ].map(({ symbol, label, cls }) => (
+          <div key={label} className={`rounded-lg border p-2.5 ${cls}`}>
+            <span className="font-black">{symbol}</span>
+            <p className="font-semibold mt-0.5">{label}</p>
+          </div>
+        ))}
+      </div>
+      {!hasAnalysis && (
+        <button
+          onClick={onRun}
+          className="mt-6 text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors underline underline-offset-4"
+        >
+          Run the first analysis
+        </button>
+      )}
+    </LockedPanelShell>
   );
 }
 
@@ -594,24 +703,27 @@ export default function StoryContent({ initialQuery }: { initialQuery?: string }
         <div className="mb-6 border-b border-white/[0.06]">
           <div className="flex gap-0 -mb-px">
             {[
-              { id: 'sources', label: `Sources (${articles.length})`, disabled: false },
-              { id: 'analysis', label: 'AI Analysis', disabled: !analysis },
-              { id: 'dna', label: 'Story DNA', disabled: !analysis?.drift },
-              ...(clusters.length > 0 ? [{ id: 'clusters', label: `Stories (${clusters.length})`, disabled: false }] : []),
+              // `locked` tabs stay clickable — the click opens a panel explaining
+              // what the tab holds and how to unlock it, instead of doing nothing.
+              { id: 'sources', label: `Sources (${articles.length})`, locked: false, hint: '' },
+              { id: 'analysis', label: 'AI Analysis', locked: !analysis, hint: '' },
+              { id: 'dna', label: 'Story DNA', locked: !analysis?.drift, hint: 'after 2 runs' },
+              ...(clusters.length > 0 ? [{ id: 'clusters', label: `Stories (${clusters.length})`, locked: false, hint: '' }] : []),
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => !tab.disabled && setActiveTab(tab.id as any)}
-                disabled={tab.disabled}
-                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors inline-flex items-center gap-1.5 ${
                   activeTab === tab.id
                     ? 'border-amber-400 text-amber-400'
-                    : tab.disabled
-                      ? 'border-transparent text-zinc-700 cursor-not-allowed'
-                      : 'border-transparent text-zinc-500 hover:text-zinc-300'
+                    : 'border-transparent text-zinc-500 hover:text-zinc-300'
                 }`}
               >
+                {tab.locked && <Lock size={12} className="opacity-60 shrink-0" />}
                 {tab.label}
+                {tab.locked && tab.hint && (
+                  <span className="text-[10px] text-zinc-600 font-normal hidden sm:inline">· {tab.hint}</span>
+                )}
                 {tab.id === 'dna' && analysis?.drift && (
                   <span className={`ml-1.5 text-xs px-1.5 py-0.5 rounded-full font-semibold ${
                     analysis.drift.driftScore >= 50 ? 'bg-rose-500/20 text-rose-400' :
@@ -699,6 +811,18 @@ export default function StoryContent({ initialQuery }: { initialQuery?: string }
         {/* ── DNA tab ────────────────────────────────────────────────── */}
         {activeTab === 'dna' && analysis?.drift && (
           <StoryDNA drift={analysis.drift} topic={query!} snapshotCount={analysis.snapshotCount ?? 1} />
+        )}
+        {activeTab === 'dna' && !analysis?.drift && (
+          <LockedDnaPanel hasAnalysis={!!analysis} onRun={analyzeArticles} />
+        )}
+
+        {/* ── Analysis tab, before it has been run ───────────────────── */}
+        {activeTab === 'analysis' && !analysis && (
+          <LockedAnalysisPanel
+            sourceCount={articles.length}
+            analyzing={analyzing}
+            onRun={analyzeArticles}
+          />
         )}
 
         {/* ── Clusters tab ───────────────────────────────────────────── */}
