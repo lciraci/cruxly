@@ -93,6 +93,35 @@ export default function RootLayout({
       className={`${GeistSans.variable} ${GeistMono.variable} ${oswald.variable} h-full antialiased dark`}
     >
       <head>
+        {/*
+          Send the production vercel.app mirrors to the canonical domain.
+
+          Supabase's Site URL is what OAuth falls back to whenever `redirectTo`
+          is not on its Redirect URL allow-list, and it currently points at
+          cruxly-woad.vercel.app — so signing in strands users on a different
+          origin, where the sessionStorage return path they saved on cruxly.dev
+          does not exist.
+
+          This has to run before any other script: supabase-js consumes the
+          #access_token fragment as soon as it initialises, and it would do so
+          on the wrong origin. Inline and synchronous in <head> beats hydration.
+          The fragment is carried across explicitly — a server redirect never
+          sees it.
+
+          Per-deploy and cruxly-git-* preview URLs are deliberately excluded so
+          previews stay testable. Delete this once Supabase's Site URL is
+          cruxly.dev.
+        */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              '(function(){var h=location.hostname;' +
+              'if(h==="cruxly-woad.vercel.app"||h==="cruxly-lucio-ciracis-projects.vercel.app"){' +
+              'location.replace("https://cruxly.dev"+location.pathname+location.search+location.hash);' +
+              '}})();',
+          }}
+        />
+
         {/* Google AdSense — only loads when NEXT_PUBLIC_ADSENSE_ID is set */}
         {adsenseId && (
           <Script
